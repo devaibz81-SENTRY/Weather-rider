@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,19 +8,15 @@
   <title>Weather App - Real-time Weather Forecast</title>
   <link rel="stylesheet" href="index.css">
 </head>
+
 <body>
   <div class="container">
     <!-- Search Card -->
     <div class="search-card">
       <h1 class="app-title">🌤️ Weather Now</h1>
       <div class="search-container">
-        <input 
-          type="text" 
-          class="search-input" 
-          id="cityInput" 
-          placeholder="Enter city name..."
-          autocomplete="off"
-        >
+        <input type="text" class="search-input" id="cityInput" placeholder="Enter city name..." autocomplete="off">
+        <button class="search-btn" id="locationBtn" title="Use my location">📍</button>
         <button class="search-btn" id="searchBtn">Search</button>
       </div>
       <div class="error-message" id="errorMessage"></div>
@@ -33,12 +30,7 @@
       </div>
 
       <div class="temperature-container">
-        <img 
-          src="" 
-          alt="Weather icon" 
-          class="weather-icon" 
-          id="weatherIcon"
-        >
+        <img src="" alt="Weather icon" class="weather-icon" id="weatherIcon">
         <div class="temperature" id="temperature">--°</div>
         <div class="weather-description" id="weatherDescription">--</div>
       </div>
@@ -72,4 +64,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>
