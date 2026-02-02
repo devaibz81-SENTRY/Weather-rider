@@ -1,301 +1,430 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
 
 :root {
-  --bg-deep: #020617;
-  --bg-dark: #0f172a;
+  --bg-deep: #050a14;
   --accent: #00f2ff;
-  --accent-glow: 0 0 20px rgba(0, 242, 255, 0.3);
-  --text-main: #ffffff;
+  --accent-secondary: #7000ff;
+  --panel-bg: rgba(20, 25, 40, 0.6);
+  /* Translucent */
+  --border: rgba(255, 255, 255, 0.1);
+  --text-main: #fff;
   --text-dim: rgba(255, 255, 255, 0.5);
-  --glass: rgba(255, 255, 255, 0.05);
+  --success: #00ff9d;
 }
 
 body {
   margin: 0;
   font-family: 'Outfit', sans-serif;
-  background-color: var(--bg-deep);
+  background: var(--bg-deep);
   color: var(--text-main);
   height: 100vh;
   overflow: hidden;
-  transition: background 0.5s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* Background Gradients */
+/* Background */
 .bg-layer {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 50% 10%, #1e293b 0%, var(--bg-deep) 70%);
+  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 80%);
   z-index: -2;
 }
 
-/* --- 🕶️ SUN BUDDY (Left Side) --- */
+/* --- 🌤️ BUDDY (Top Right) --- */
 .buddy-wrapper {
   position: fixed;
   top: 20px;
-  left: 20px;
-  z-index: 50;
-  cursor: pointer;
-  /* Clickable */
-}
-
-.sun-body {
-  width: 70px;
-  height: 70px;
-  background: linear-gradient(135deg, #ffd700, #ffaa00);
-  border-radius: 50%;
-  box-shadow: 0 0 40px rgba(255, 170, 0, 0.4);
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: transform 0.2s;
-}
-
-.sun-body:active {
-  transform: scale(0.9);
-}
-
-/* Sunglasses Emoji Overlay */
-.sunglasses {
-  font-size: 2.5rem;
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* Eye Tracking Container (Hidden behind glasses, but concept remains if we remove glasses) */
-/* Actually, user asked for "Sun glass emoji on the other side" - assuming they mean wearing them? */
-/* Let's make eyes visible roughly through lenses or just below if we animate them looking */
-/* For eye tracking to work VISIBLY, we might need to remove the glasses emoji or animate the glasses themselves moving? */
-/* Let's Try: The whole sun rotates to look at mouse! Simpler and cooler. */
-
-.buddy-chat {
-  position: absolute;
-  top: 80px;
-  left: 0;
-  background: #fff;
-  color: #000;
-  padding: 10px 15px;
-  border-radius: 0 15px 15px 15px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  width: 200px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* --- 📊 AT A GLANCE HEADER --- */
-.glance-header {
-  position: fixed;
-  top: 30px;
-  right: 30px;
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  text-align: right;
-}
-
-.glance-item {
+  right: 20px;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
 }
 
-.g-val {
-  font-size: 1.5rem;
+.sun-body {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(255, 170, 0, 0.5);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.sunglasses-overlay {
+  font-size: 2rem;
+  z-index: 2;
+  margin-top: 2px;
+}
+
+.eyes-container {
+  position: absolute;
+  top: 22px;
+  width: 30px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 1;
+  /* Behind glasses usually, or remove glasses to see eyes */
+}
+
+/* Remove glasses emoji if you want visible tracking eyes, or keep for style */
+/* For now, keeping both. Eyes will peek if glasses move or just "be there" */
+
+.buddy-chat {
+  background: #fff;
+  color: #000;
+  padding: 8px 15px;
+  border-radius: 15px 0 15px 15px;
+  margin-top: 10px;
   font-weight: 700;
-  color: var(--accent);
-  text-shadow: var(--accent-glow);
+  font-size: 0.85rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-width: 200px;
 }
 
-.g-icon {
-  font-size: 1.2rem;
-  margin-bottom: 2px;
+/* --- 📊 GLANCE BAR (Top Left) --- */
+.glance-bar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 10;
 }
 
-.g-label {
-  font-size: 0.9rem;
+.glance-info {
+  text-align: right;
+}
+
+.g-city {
+  display: block;
+  font-size: 0.8rem;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-/* --- MAIN DASH --- */
-.dashboard-screen {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  padding-bottom: 100px;
-  /* Space for simulation */
+.g-temp {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
 }
 
-.hero-title {
-  font-size: 3rem;
-  font-weight: 900;
-  margin-bottom: 40px;
-  background: linear-gradient(to right, #fff, var(--text-dim));
+.glance-icon {
+  font-size: 2rem;
+}
+
+/* --- 🎛️ MISSION CARD --- */
+.glass-card {
+  background: var(--panel-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 30px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.card-header h2 {
+  font-size: 1.2rem;
+  margin: 0;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #fff, var(--text-dim));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -2px;
 }
 
-/* Floating Planner (No Boxes) */
-.floating-planner {
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+}
+
+/* Tabs */
+.activity-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 5px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px;
+  color: var(--text-dim);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: 0.3s;
+  font-size: 0.9rem;
+}
+
+.tab-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Inputs */
+.control-grid {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 15px;
-  width: 100%;
-  max-width: 400px;
+  position: relative;
 }
 
-.float-input-group {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 10px 0;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+.input-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 15px;
   transition: 0.3s;
 }
 
-.float-input-group:focus-within {
-  border-bottom-color: var(--accent);
-  transform: scale(1.02);
+.input-box:focus-within {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.f-icon {
-  font-size: 1.2rem;
-  margin-right: 15px;
-  opacity: 0.7;
+.input-box label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 5px;
+  letter-spacing: 1px;
 }
 
-.float-input-group input {
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.input-row input {
   background: none;
   border: none;
   color: #fff;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.1rem;
   width: 100%;
   outline: none;
+  font-weight: 600;
 }
 
-.float-input-group input::placeholder {
-  color: var(--text-dim);
-  font-weight: 400;
-}
-
-.connector-dots span {
-  display: block;
-  text-align: center;
-  line-height: 0.5;
-  color: var(--text-dim);
-  font-size: 1.5rem;
-}
-
-/* BIG BUTTON */
-.ride-btn {
-  margin-top: 30px;
-  background: var(--accent);
-  color: #000;
+.icon-btn {
+  background: none;
   border: none;
-  padding: 20px 60px;
   font-size: 1.2rem;
-  font-weight: 900;
-  border-radius: 30px;
-  /* Pill shape */
   cursor: pointer;
-  box-shadow: var(--accent-glow);
-  transition: 0.3s;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  opacity: 0.8;
 }
 
-.ride-btn:hover {
-  transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 10px 30px rgba(0, 242, 255, 0.5);
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: block;
 }
 
-/* --- 🎒 PACKING LIST (Snarky) --- */
-.packing-list {
-  margin-top: 50px;
+.dot.start {
+  background: var(--success);
+}
+
+.dot.end {
+  background: var(--accent-secondary);
+}
+
+.route-u-line {
+  position: absolute;
+  left: 18px;
+  top: 45px;
+  height: 45px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--success), var(--accent-secondary));
+  opacity: 0.3;
+  z-index: 0;
+}
+
+/* Launch Button */
+.launch-btn {
   width: 100%;
-  max-width: 500px;
+  margin-top: 25px;
+  padding: 18px;
+  background: linear-gradient(90deg, var(--accent-secondary), var(--accent));
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #fff;
+  cursor: pointer;
+  letter-spacing: 1px;
+  box-shadow: 0 0 20px rgba(112, 0, 255, 0.4);
+  transition: 0.3s;
 }
 
-.packing-list h3 {
-  font-size: 0.9rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
+.launch-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 242, 255, 0.6);
+}
+
+/* --- 💡 INSIGHT PANEL (The Pop-out) --- */
+.insight-panel {
+  margin-top: 25px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  animation: growDown 0.4s ease forwards;
+}
+
+@keyframes growDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
   margin-bottom: 15px;
+}
+
+.i-title {
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-size: 0.9rem;
+}
+
+.i-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 20px;
+}
+
+.brief-stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.b-stat {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 8px;
   text-align: center;
 }
 
-.pack-items {
+.b-val {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.b-lbl {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+}
+
+.gear-row {
   display: flex;
-  justify-content: center;
-  gap: 15px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.gear-chip {
+.gear-tag {
+  font-size: 0.8rem;
   background: rgba(255, 255, 255, 0.1);
-  padding: 10px 20px;
+  padding: 5px 12px;
   border-radius: 20px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  animation: popIn 0.4s backwards;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* --- 📽️ SIMULATION OVERLAY --- */
+/* Sim Overlay Utils */
+.hidden {
+  display: none !important;
+}
+
 .sim-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(2, 6, 23, 0.95);
-  z-index: 100;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 200;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .sim-content {
-  width: 100%;
-  max-width: 600px;
-  padding: 20px;
+  background: #0f172a;
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid var(--accent);
+  width: 90%;
+  max-width: 500px;
 }
 
 .sim-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
 }
 
-.sim-header h2 {
-  font-size: 2rem;
-  margin: 0;
-  color: var(--accent);
-}
-
-.close-btn {
+.sim-header button {
   background: none;
   border: none;
-  font-size: 2rem;
   color: #fff;
+  font-size: 1.5rem;
   cursor: pointer;
-}
-
-.sim-track-container {
-  margin-bottom: 40px;
 }
 
 .track-bar {
@@ -303,81 +432,40 @@ body {
   height: 4px;
   background: rgba(255, 255, 255, 0.1);
   position: relative;
-  border-radius: 2px;
+  margin-bottom: 10px;
 }
 
 .track-fill {
   position: absolute;
-  left: 0;
-  top: 0;
   height: 100%;
   width: 0%;
   background: var(--accent);
-  box-shadow: var(--accent-glow);
 }
 
 .track-rider {
   position: absolute;
   top: -25px;
   left: 0%;
-  font-size: 2rem;
-  transform: translateX(-50%);
   transition: left 0.1s linear;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
 }
 
-.live-stats {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 40px;
-}
-
-.ls-item {
+.live-telemetry {
   text-align: center;
-}
-
-.ls-val {
-  display: block;
-  font-size: 2.5rem;
-  font-weight: 900;
-}
-
-.ls-label {
-  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 20px;
+  font-size: 1.2rem;
   color: var(--text-dim);
-  letter-spacing: 2px;
 }
 
-.ai-insight {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 20px;
-  display: flex;
-  gap: 15px;
-  align-items: flex-start;
+.live-telemetry span {
+  color: #fff;
 }
 
-.ai-avatar {
-  font-size: 2rem;
-}
-
-.ai-insight p {
-  font-size: 1.1rem;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-}
-
-.hidden {
-  display: none !important;
-}
-
-@keyframes popIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.sim-advice {
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 15px;
+  color: var(--accent);
 }

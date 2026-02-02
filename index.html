@@ -10,111 +10,124 @@
 
 <body>
 
-  <!-- ✨ Dynamic Background (Dark Theme Default) -->
+  <!-- ✨ Dynamic Background -->
   <div class="bg-layer" id="bgLayer"></div>
 
-  <!-- 🕶️ COOL SUN BUDDY (Left Side + Eye Tracking) -->
+  <!-- 🌤️ BUDDY (Top Right, clearly visible) -->
   <div class="buddy-wrapper" id="buddyWrapper">
     <div class="sun-body" id="sunBody">
-      <div class="sunglasses">🕶️</div>
       <div class="eyes-container">
         <div class="eye" id="eyeLeft"></div>
         <div class="eye" id="eyeRight"></div>
       </div>
-      <div class="rays"></div>
+      <div class="sunglasses-overlay">🕶️</div>
     </div>
-    <!-- Speech Bubble -->
-    <div class="buddy-chat hidden" id="buddyChat">Yo. 🕶️</div>
+    <div class="buddy-chat hidden" id="buddyChat">Ready to roll! 🏍️</div>
   </div>
 
-  <!-- 📊 AT A GLANCE HEADER (Floating Stats) -->
-  <div class="glance-header">
-    <div class="glance-item">
-      <span class="g-icon" id="quickIcon">🌡️</span>
-      <span class="g-val" id="quickTemp">--°</span>
+  <!-- 📊 TOP STATS (Last Location Memory) -->
+  <div class="glance-bar">
+    <div class="glance-info">
+      <span class="g-city" id="lastCity">Loading...</span>
+      <span class="g-temp" id="lastTemp">--°</span>
     </div>
-    <div class="glance-item">
-      <span class="g-icon">💨</span>
-      <span class="g-val" id="quickWind">--</span>
-    </div>
-    <div class="glance-item">
-      <span class="g-label" id="quickDesc">Loading...</span>
-    </div>
+    <div class="glance-icon" id="lastIcon">☁️</div>
   </div>
 
-  <!-- 🚪 Screen 1: Dashboard (Main) -->
+  <!-- 🚪 MAIN DASHBOARD -->
   <div class="screen dashboard-screen">
 
-    <!-- Title (Floating) -->
-    <h1 class="hero-title">RIDE COMMAND</h1>
+    <!-- 🎛️ MISSION CONTROL CARD -->
+    <div class="glass-card mission-control">
 
-    <!-- 📍 Floating Inputs (No Boxes) -->
-    <div class="floating-planner" id="planner">
-
-      <div class="float-input-group">
-        <span class="f-icon">🟢</span>
-        <input type="text" id="startLoc" placeholder="From where?" value="London">
+      <div class="card-header">
+        <h2>PLAN MISSION</h2>
+        <div class="status-indicator online"></div>
       </div>
 
-      <div class="connector-dots">
-        <span>•</span><span>•</span><span>•</span>
+      <!-- Activity Selector (Tabs) -->
+      <div class="activity-tabs" id="activitySelector">
+        <button class="tab-btn active" data-type="ride">🏍️ RIDE</button>
+        <button class="tab-btn" data-type="run">🏃 RUN</button>
+        <button class="tab-btn" data-type="cycle">🚴 CYCLE</button>
       </div>
 
-      <div class="float-input-group">
-        <span class="f-icon">🏁</span>
-        <input type="text" id="endLoc" placeholder="To where?">
+      <!-- Inputs -->
+      <div class="control-grid">
+        <div class="input-box">
+          <label>START POINT</label>
+          <div class="input-row">
+            <span class="dot start"></span>
+            <input type="text" id="startLoc" value="London">
+            <button class="icon-btn" id="locateBtn">📍</button>
+          </div>
+        </div>
+
+        <div class="route-u-line"></div>
+
+        <div class="input-box">
+          <label>DESTINATION</label>
+          <div class="input-row">
+            <span class="dot end"></span>
+            <input type="text" id="endLoc" placeholder="Enter City...">
+          </div>
+        </div>
       </div>
 
-      <button class="ride-btn" id="goBtn">
-        <span>🚀 PLAN MISSION</span>
+      <!-- Big Action Button -->
+      <button class="launch-btn" id="goBtn">
+        ANALYZE CONDITIONS
       </button>
 
-    </div>
+      <!-- 💡 PRE-RIDE INSIGHTS (Appears here) -->
+      <div class="insight-panel hidden" id="insightPanel">
+        <div class="insight-header">
+          <span class="i-icon">🤖</span>
+          <span class="i-title">MISSION BRIEFING</span>
+        </div>
+        <p class="i-text" id="missionText">Analyzing...</p>
 
-    <!-- 🎒 Smart Packing List (The Snarky Part) -->
-    <div class="packing-list hidden" id="packingList">
-      <h3>🎒 Survival Gear</h3>
-      <div class="pack-items" id="packItems">
-        <!-- Injected by JS -->
+        <!-- Live Stats Grid -->
+        <div class="brief-stats">
+          <div class="b-stat">
+            <span class="b-val" id="briefTemp">--°</span>
+            <span class="b-lbl">TEMP</span>
+          </div>
+          <div class="b-stat">
+            <span class="b-val" id="briefWind">--</span>
+            <span class="b-lbl">WIND</span>
+          </div>
+          <div class="b-stat">
+            <span class="b-val" id="briefRain">--%</span>
+            <span class="b-lbl">RAIN</span>
+          </div>
+        </div>
+
+        <!-- Generated Gear -->
+        <div class="gear-row" id="gearRow"></div>
       </div>
+
     </div>
 
   </div>
 
-  <!-- 📽️ SIMULATION OVERLAY (Same logic, cleaner look) -->
+  <!-- 📽️ SIMULATION OVERLAY (Keeping the map view) -->
   <div class="sim-overlay hidden" id="simOverlay">
     <div class="sim-content">
       <div class="sim-header">
-        <h2 id="simRouteTitle">LON ➔ MAN</h2>
-        <button id="closeSim" class="close-btn">✕</button>
+        <h2 id="simRouteTitle">SIMULATION</h2>
+        <button id="closeSim">✕</button>
       </div>
-
-      <div class="sim-track-container">
+      <div class="track-area">
         <div class="track-bar">
           <div class="track-fill" id="trackFill"></div>
-          <div class="track-rider" id="trackRider">🏍️</div>
         </div>
+        <div class="track-rider" id="trackRider">🏍️</div>
       </div>
-
-      <div class="live-stats">
-        <div class="ls-item">
-          <span class="ls-val" id="simTemp">--°</span>
-          <span class="ls-label">TEMP</span>
-        </div>
-        <div class="ls-item">
-          <span class="ls-val" id="simDist">0km</span>
-          <span class="ls-label">DIST</span>
-        </div>
-        <div class="ls-item">
-          <span class="ls-val" id="simWind">--</span>
-          <span class="ls-label">WIND</span>
-        </div>
+      <div class="live-telemetry">
+        <span id="simDist">0km</span> • <span id="simTemp">--°</span> • <span id="simWind">--kph</span>
       </div>
-
-      <div class="ai-insight">
-        <span class="ai-avatar">🤖</span>
-        <p id="aiMessage">Calculating odds of survival...</p>
-      </div>
+      <p id="simAdvice" class="sim-advice">Monitoring route...</p>
     </div>
   </div>
 
