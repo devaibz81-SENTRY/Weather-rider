@@ -1,15 +1,17 @@
-// 🚀 Weather Rider App Logic
+// 🚀 Weather Rider App Logic (Powered by Open-Meteo)
 
-// OpenWeather API Configuration
-const API_KEY = '83320e4d47175ac43be36081684ecf89';
-const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
+// Open-Meteo API Endpoints (No Key Required!)
+const GEOCODING_API_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
 
 // State Management
 const state = {
   currentScreen: 'login',
   startLocation: 'London',
   destination: '',
-  weatherData: null
+  weatherData: null,
+  lat: 51.5074,
+  lon: -0.1278
 };
 
 // DOM Elements
@@ -45,24 +47,18 @@ const widget = {
 // --- 🎬 Initialization & Event Listeners ---
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Check local storage for previous session
   if (localStorage.getItem('rider_active')) {
     switchScreen('dashboard');
-    // Load last known location weather
-    getLiveWeather(inputs.start.value);
-  } else {
-    // Start animation for background if needed
+    getLiveWeather('London');
   }
 });
 
-// Login Button
 enterBtn.addEventListener('click', () => {
   localStorage.setItem('rider_active', 'true');
   switchScreen('dashboard');
-  getLiveWeather('London'); // Default start
+  getLiveWeather('London');
 });
 
-// Calculate Ride Button
 calculateBtn.addEventListener('click', async () => {
   const destination = inputs.end.value.trim();
   if (!destination) {
@@ -70,49 +66,50 @@ calculateBtn.addEventListener('click', async () => {
     return;
   }
 
-  // Visual Loading Feedback
   calculateBtn.textContent = "Calculating Route...";
   calculateBtn.style.opacity = "0.7";
 
-  // 1. Fetch Real Weather for Destination
-  const weather = await fetchWeatherData(destination);
+  // 1. Get Coords for Destination
+  const coords = await getCoordinates(destination);
 
-  if (weather) {
-    // 2. Simulate Route Calculation (since we don't have Maps API yet)
-    await simulateCalculation();
+  if (coords) {
+    // 2. Fetch Detailed Forecast
+    const weather = await fetchForecast(coords.latitude, coords.longitude);
 
-    // 3. Update Stats with Real + Mock Data
-    updateStats(weather);
+    if (weather) {
+      // 3. Simulate Route Calculation
+      await simulateCalculation();
 
-    // 4. Open Drawer
-    openDrawer();
+      // 4. Update Stats using REAL Hourly Data
+      updateStats(weather, coords.name);
+
+      // 5. Open Drawer
+      openDrawer();
+    }
   }
 
-  // Reset Button
   calculateBtn.textContent = "Analyze Route";
   calculateBtn.style.opacity = "1";
 });
 
-// Close Stats Drawer
 closeDrawerBtn.addEventListener('click', closeDrawer);
 
-// Locate Me
 locateMeBtn.addEventListener('click', () => {
   if (navigator.geolocation) {
     inputs.start.value = "Locating...";
     navigator.geolocation.getCurrentPosition(pos => {
-      // For now, reverse geocoding is complex without another API 
-      // so we will just use coords to get weather
-      getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
-      inputs.start.value = "Current Location";
+      fetchForecast(pos.coords.latitude, pos.coords.longitude).then(data => {
+        updateWidget(data);
+        inputs.start.value = "Current Location";
+      });
     }, err => {
-      inputs.start.value = "London"; // Fallback
+      inputs.start.value = "London";
       alert("Could not pull location.");
     });
   }
 });
 
-// --- 🛠️ Core Functions ---
+// --- 🛠️ Core Functions (Open-Meteo) ---
 
 function switchScreen(screenName) {
   if (screenName === 'dashboard') {
@@ -124,87 +121,125 @@ function switchScreen(screenName) {
   }
 }
 
-async function fetchWeatherData(city) {
+// 1. Geocoding: City -> Lat/Lon
+async function getCoordinates(city) {
   try {
-    const url = `${API_URL}?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
+    const url = `${GEOCODING_API_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error('City not found');
-    return await res.json();
+    const data = await res.json();
+
+    if (!data.results || data.results.length === 0) throw new Error('City not found');
+
+    return data.results[0]; // { latitude, longitude, name, country }
   } catch (error) {
-    alert("Could not find weather for " + city);
+    alert("Could not find location: " + city);
+    return null;
+  }
+}
+
+// 2. Weather: Lat/Lon -> Forecast
+async function fetchForecast(lat, lon) {
+  try {
+    const url = `${WEATHER_API_URL}?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,weathercode&windspeed_unit=kmh`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error(error);
     return null;
   }
 }
 
 async function getLiveWeather(city) {
-  const data = await fetchWeatherData(city);
-  if (data) updateWidget(data);
-}
-
-async function getWeatherByCoords(lat, lon) {
-  const url = `${API_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-  const res = await fetch(url);
-  const data = await res.json();
-  updateWidget(data);
+  const coords = await getCoordinates(city);
+  if (coords) {
+    const data = await fetchForecast(coords.latitude, coords.longitude);
+    if (data) updateWidget(data);
+  }
 }
 
 function updateWidget(data) {
-  widget.temp.textContent = Math.round(data.main.temp) + '°';
-  widget.desc.textContent = data.weather[0].main;
+  const current = data.current_weather;
+  widget.temp.textContent = Math.round(current.temperature) + '°';
+  const weatherInfo = getWeatherDescription(current.weathercode);
+  widget.desc.textContent = weatherInfo.desc;
+  widget.icon.textContent = weatherInfo.icon;
 
-  // Dynamic Background based on weather
-  updateBackground(data.weather[0].id);
+  updateBackground(current.weathercode);
 }
 
-function updateStats(weatherData) {
-  // Real Data
-  stats.arrivalTemp.textContent = Math.round(weatherData.main.temp) + '°';
-  stats.windGust.textContent = (weatherData.wind.speed * 3.6).toFixed(1) + ' km/h';
+function updateStats(data, cityName) {
+  const current = data.current_weather;
 
-  // Mock Data (Travel Time) - Random between 25 and 90 mins
+  // Update Stats
+  stats.arrivalTemp.textContent = Math.round(current.temperature) + '°';
+  stats.windGust.textContent = current.windspeed + ' km/h'; // Open-Meteo gives wind speed directly
+
+  // Mock Travel Time
   const randomTime = Math.floor(Math.random() * (90 - 25 + 1) + 25);
   const hours = Math.floor(randomTime / 60);
   const mins = randomTime % 60;
   stats.travelTime.textContent = hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
 
-  // Generate Timeline Mockup
-  generateTimeline(Math.round(weatherData.main.temp));
+  // Generate Timeline from REAL Hourly Data
+  generateTimeline(data.hourly);
 }
 
-function generateTimeline(baseTemp) {
+function generateTimeline(hourlyData) {
   stats.timeline.innerHTML = '';
-  const now = new Date().getHours();
 
-  for (let i = 1; i <= 5; i++) {
-    const time = (now + i) % 24;
-    const timeStr = time + ':00';
-    // Simulate slight temp change
-    const temp = baseTemp + Math.floor(Math.random() * 3) - 1;
+  // We want the next 5 hours relative to now
+  // Open-Meteo returns iso8601 times array. We just grab indices for now.
+  const currentHourIndex = new Date().getHours();
 
-    const div = document.createElement('div');
-    div.className = 'timeline-item';
-    div.innerHTML = `
-      <span class="timeline-time">${timeStr}</span>
-      <span class="timeline-icon">☁️</span>
-      <span class="timeline-temp">${temp}°</span>
-    `;
-    stats.timeline.appendChild(div);
+  for (let i = 1; i <= 6; i++) {
+    // Handle array wrapping next day is simple in Open-Meteo (it usually returns 7 days)
+    // but array is linear (0 to 167 usually). currentHourIndex maps to array index roughly if aligned to UTC/Local.
+    // For simplicity in this demo, we'll just grab the next few indices assuming response starts at 00:00 today (usually does).
+    // Better path: find index where time > now.
+
+    // Simple Approximation:
+    const targetIndex = currentHourIndex + i;
+
+    if (targetIndex < hourlyData.time.length) {
+      const timeStr = hourlyData.time[targetIndex].slice(11, 16); // Extract "HH:MM"
+      const temp = Math.round(hourlyData.temperature_2m[targetIndex]);
+      const code = hourlyData.weathercode[targetIndex];
+      const info = getWeatherDescription(code);
+
+      const div = document.createElement('div');
+      div.className = 'timeline-item';
+      div.innerHTML = `
+        <span class="timeline-time">${timeStr}</span>
+        <span class="timeline-icon">${info.icon}</span>
+        <span class="timeline-temp">${temp}°</span>
+      `;
+      stats.timeline.appendChild(div);
+    }
   }
 }
 
-function updateBackground(weatherId) {
+// 3. WMO Weather Code Mapper (The "Decoder Ring" for Open-Meteo)
+function getWeatherDescription(code) {
+  // WMO Codes: https://open-meteo.com/en/docs
+  if (code === 0) return { desc: 'Clear Sky', icon: '☀️' };
+  if (code >= 1 && code <= 3) return { desc: 'Partly Cloudy', icon: '⛅' };
+  if (code >= 45 && code <= 48) return { desc: 'Foggy', icon: '🌫️' };
+  if (code >= 51 && code <= 55) return { desc: 'Drizzle', icon: '🌦️' };
+  if (code >= 61 && code <= 67) return { desc: 'Rain', icon: '🌧️' };
+  if (code >= 71 && code <= 77) return { desc: 'Snow', icon: '❄️' };
+  if (code >= 80 && code <= 82) return { desc: 'Showers', icon: '☔' };
+  if (code >= 95 && code <= 99) return { desc: 'Thunderstorm', icon: '⚡' };
+  return { desc: 'Unknown', icon: '❓' };
+}
+
+function updateBackground(code) {
   let gradient = 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)';
 
-  if (weatherId >= 200 && weatherId < 600) {
-    // Rain / Storm
-    gradient = 'linear-gradient(135deg, #232526 0%, #414345 100%)';
-  } else if (weatherId === 800) {
-    // Clear
-    gradient = 'linear-gradient(135deg, #2980b9 0%, #6dd5fa 100%)';
-  } else if (weatherId > 800) {
-    // Clouds
-    gradient = 'linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)';
-  }
+  if (code === 0) gradient = 'linear-gradient(135deg, #2980b9 0%, #6dd5fa 100%)'; // Clear
+  else if (code >= 61 || (code >= 80 && code <= 99)) gradient = 'linear-gradient(135deg, #232526 0%, #414345 100%)'; // Storm/Rain
+  else if (code >= 71) gradient = 'linear-gradient(135deg, #83a4d4 0%, #b6fbff 100%)'; // Snow
+  else if (code >= 1) gradient = 'linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)'; // Clouds/Fog
 
   document.body.style.background = gradient;
 }
@@ -218,7 +253,6 @@ function closeDrawer() {
   statsDrawer.classList.remove('open');
 }
 
-// Initial Animation Simulator (Just a delay)
 function simulateCalculation() {
   return new Promise(resolve => setTimeout(resolve, 1500));
 }
