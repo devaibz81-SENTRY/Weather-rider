@@ -1,24 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
 :root {
-  /* Dynamic Background Colors (Set by JS) */
   --bg-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-
-  /* Glassmorphism */
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
   --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-
-  /* Colors */
+  --accent-gradient: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
-  --accent-color: #00d2ff;
-  --accent-gradient: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
-
-  /* Spacing */
-  --spacing-sm: 10px;
-  --spacing-md: 20px;
-  --spacing-lg: 30px;
 }
 
 * {
@@ -33,10 +22,10 @@ body {
   color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
-  /* Prevent scroll on main body */
+  transition: background 1s ease;
 }
 
-/* --- Screens Architecture --- */
+/* Screens */
 .screen {
   position: absolute;
   top: 0;
@@ -45,7 +34,7 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: 0.5s ease;
 }
 
 .screen.hidden {
@@ -54,7 +43,7 @@ body {
   transform: scale(0.95);
 }
 
-/* --- Login Screen --- */
+/* Login */
 .login-screen {
   justify-content: center;
   align-items: center;
@@ -88,66 +77,65 @@ body {
 .cta-btn {
   margin-top: 30px;
   padding: 15px 40px;
-  font-size: 1.2rem;
   background: var(--accent-gradient);
   border: none;
   border-radius: 50px;
   color: white;
-  cursor: pointer;
   font-weight: bold;
-  box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+  font-size: 1.2rem;
+  cursor: pointer;
   transition: transform 0.2s;
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
 }
 
 .cta-btn:hover {
   transform: scale(1.05);
 }
 
-.pulse {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.7);
-  }
-
-  70% {
-    box-shadow: 0 0 0 20px rgba(0, 210, 255, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(0, 210, 255, 0);
-  }
-}
-
-/* --- Dashboard Screen --- */
+/* Dashboard */
 .dashboard-screen {
   padding: 20px;
 }
 
+/* Animated Header */
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+  animation: slideDown 0.8s ease;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .logo-small {
   font-weight: 700;
   font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .user-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   background: var(--glass-bg);
   padding: 5px 15px;
   border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* --- Glass Panel (Shared) --- */
+/* Panels */
 .glass-panel {
   background: var(--glass-bg);
   backdrop-filter: blur(14px);
@@ -157,13 +145,25 @@ body {
   border-radius: 20px;
 }
 
-/* --- Trip Planner --- */
+/* Trip Planner */
 .trip-planner {
   padding: 25px;
   max-width: 500px;
   margin: 0 auto;
-  position: relative;
   z-index: 5;
+  animation: fadeInUp 0.8s ease 0.2s backwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .trip-planner h2 {
@@ -173,82 +173,87 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-.input-group {
-  margin-bottom: 20px;
-}
-
 .input-group label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .input-wrapper {
   display: flex;
   gap: 10px;
+  margin-bottom: 20px;
 }
 
 .input-wrapper input {
   flex: 1;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
   font-size: 1rem;
-}
-
-.input-wrapper input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  transition: 0.3s;
 }
 
 .input-wrapper input:focus {
-  outline: 2px solid var(--accent-color);
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
+  outline: 2px solid #00d2ff;
 }
 
 .icon-btn {
   background: rgba(255, 255, 255, 0.1);
   border: none;
   width: 45px;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   font-size: 1.2rem;
+  transition: 0.3s;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .action-btn {
   width: 100%;
-  padding: 15px;
+  padding: 16px;
   background: var(--accent-gradient);
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   color: white;
   font-weight: 600;
   font-size: 1.1rem;
   cursor: pointer;
-  transition: opacity 0.3s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: 0.3s;
 }
 
 .action-btn:hover {
-  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 210, 255, 0.4);
 }
 
-/* --- Stats Pop-out Drawer --- */
+/* Stats Drawer */
 .stats-drawer {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 60vh;
-  background: rgba(20, 30, 48, 0.95);
+  height: 75vh;
+  background: rgba(20, 30, 48, 0.98);
   backdrop-filter: blur(20px);
   border-radius: 30px 30px 0 0;
-  padding: 20px;
+  padding: 25px;
   transform: translateY(110%);
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 20;
   box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
 }
 
 .stats-drawer.open {
@@ -256,106 +261,139 @@ body {
 }
 
 .drawer-handle {
-  width: 50px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.3);
+  width: 60px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 10px;
-  margin: 0 auto 20px;
+  margin: 0 auto 25px;
 }
 
 .stats-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
+  align-items: center;
 }
 
 .close-drawer {
   cursor: pointer;
-  padding: 5px 10px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
+  font-size: 1.1rem;
+  transition: 0.2s;
+}
+
+.close-drawer:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 30px;
+  overflow-y: auto;
+  padding-bottom: 20px;
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.07);
   padding: 15px;
-  border-radius: 15px;
+  border-radius: 16px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  animation: popIn 0.4s ease backwards;
+}
+
+.stat-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.stat-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.stat-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .stat-icon {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   margin-bottom: 5px;
 }
 
 .stat-label {
-  display: block;
   font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
-  font-size: 1.1rem;
-  font-weight: bold;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
 }
 
-/* --- Hourly Timeline --- */
 .timeline-section h4 {
   margin-bottom: 15px;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
 }
 
 .timeline-scroll {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   overflow-x: auto;
   padding-bottom: 10px;
 }
 
 .timeline-item {
   background: rgba(255, 255, 255, 0.05);
-  min-width: 80px;
+  min-width: 75px;
   padding: 15px 10px;
-  border-radius: 15px;
+  border-radius: 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.timeline-time {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.timeline-icon {
-  font-size: 1.5rem;
-}
-
-.timeline-temp {
-  font-weight: bold;
-}
-
-/* --- Floating Widget --- */
+/* Floating Widget */
 .weather-widget {
   position: absolute;
   top: 80px;
   right: 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   padding: 10px 20px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
   animation: float 4s ease-in-out infinite;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  cursor: default;
 }
 
 @keyframes float {
@@ -366,37 +404,31 @@ body {
   }
 
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
 }
 
 .widget-content {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .temp-small {
-  font-weight: bold;
-  font-size: 1.2rem;
-  display: block;
+  font-weight: 800;
+  font-size: 1.4rem;
 }
 
 .desc-small {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .weather-icon-small {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
 }
 
-/* Scrollbar Hide */
 ::-webkit-scrollbar {
-  height: 5px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  width: 0;
+  height: 0;
 }
