@@ -1,4 +1,4 @@
-// 🚀 Weather Rider: Cockpit Edition
+// 🚀 Weather Rider: Cockpit Edition (Stable Navigation Fix)
 
 const API = {
   GEO: 'https://geocoding-api.open-meteo.com/v1/search',
@@ -51,28 +51,47 @@ ui.inputs.go.addEventListener('click', async () => {
   if (!dest) return buddySay("Missing Danger Zone (Destination) 🚫");
 
   ui.inputs.go.textContent = "🔁 CALCULATING...";
+  ui.inputs.go.style.opacity = "0.7";
 
   try {
-    // 1. Resolve
-    if (!state.coords.start) state.coords.start = await resolve(ui.inputs.start.value);
-    state.coords.end = await resolve(dest);
+    // 1. Resolve Start
+    if (!ui.inputs.start.value) ui.inputs.start.value = 'London';
 
-    // 2. Data
-    const route = await fetchRoute(state.coords.start, state.coords.end);
+    const startCoords = await resolve(ui.inputs.start.value);
+    if (!startCoords) throw new Error(`Unknown start: ${ui.inputs.start.value}`);
+    state.coords.start = startCoords;
+
+    // 2. Resolve End
+    const endCoords = await resolve(dest);
+    if (!endCoords) throw new Error(`Unknown dest: ${dest}`);
+    state.coords.end = endCoords;
+
+    // 3. Data (With Fallback)
+    // We try real routing first. If it fails (water/server), we mock it using math.
+    let route = null;
+    try {
+      route = await fetchRoute(state.coords.start, state.coords.end);
+    } catch (routeErr) {
+      console.warn("Routing failed (likely ocean or server). Using fallback math.");
+      route = calculateFallbackRoute(state.coords.start, state.coords.end);
+    }
+
     const weather = await fetchWeather(state.coords.end);
     state.weather = weather; // Store for sim
 
-    // 3. GENERATE BRIEFING (The "Stats" User Asked For)
-    generateBriefing(weather, route);
+    // 4. BRIEFING
+    generateBriefing(weather, route); // route is guaranteed to exist now
 
-    // 4. Change Button to Launch Sim
+    // 5. Ready to Sim
     ui.inputs.go.textContent = "🚀 LAUNCH SIMULATION";
+    ui.inputs.go.style.opacity = "1";
     ui.inputs.go.onclick = () => startSim(route, weather); // Re-bind click
 
   } catch (e) {
     console.error(e);
-    buddySay("Nav Error. Check City Names.");
+    buddySay("Error: " + e.message);
     ui.inputs.go.textContent = "ANALYZE CONDITIONS";
+    ui.inputs.go.style.opacity = "1";
   }
 });
 
@@ -109,19 +128,21 @@ function generateBriefing(data, route) {
     gear.push("Leather Jacket 🧥", "Visor Cleaner 🧽");
   }
 
-  ui.insight.text.textContent = `Route: ${Math.round(route.distance / 1000)}km. ${advice}`;
+  const distKm = Math.round(route.distance / 1000);
+  ui.insight.text.textContent = `Distance: ${distKm}km. ${advice}`;
   ui.insight.gear.innerHTML = gear.map(g => `<span class="gear-tag">${g}</span>`).join('');
 }
 
 // --- 🎮 SIMULATION ---
 function startSim(route, weather) {
   ui.sim.overlay.classList.remove('hidden');
+
+  // Simple Reset Listener
   ui.sim.close.onclick = () => {
     ui.sim.overlay.classList.add('hidden');
     clearInterval(state.simTimer);
-    ui.inputs.go.textContent = "ANALYZE CONDITIONS"; // Reset button
-    ui.inputs.go.addEventListener('click', () => { }); // Need to reload/reset properly
-    location.reload(); // Simplest reset for this demo
+    // Reset Main Button state by reloading page (simplest clean slate) or logic reset
+    location.reload();
   };
 
   let pct = 0;
@@ -132,7 +153,7 @@ function startSim(route, weather) {
     ui.sim.fill.style.width = pct + '%';
     ui.sim.rider.style.left = pct + '%';
 
-    // Live Stats
+    // Live Stats with Jitter
     ui.sim.dist.textContent = (total * (pct / 100)).toFixed(1) + 'km';
     ui.sim.temp.textContent = (weather.current_weather.temperature + (Math.random() - 0.5)).toFixed(1) + '°';
     ui.sim.wind.textContent = (weather.current_weather.windspeed + (Math.random() * 2)).toFixed(0) + 'kph';
@@ -143,27 +164,59 @@ function startSim(route, weather) {
 
 // --- UTILS ---
 async function refreshGlance(city) {
-  const c = await resolve(city);
-  if (c) {
-    state.coords.start = c; // Cache start
-    const w = await fetchWeather(c);
-    ui.glance.city.textContent = c.name;
-    ui.glance.temp.textContent = Math.round(w.current_weather.temperature) + '°';
-    ui.glance.icon.textContent = getWeatherIcon(w.current_weather.weathercode);
-  }
+  try {
+    const c = await resolve(city);
+    if (c) {
+      state.coords.start = c; // Cache start
+      const w = await fetchWeather(c);
+      ui.glance.city.textContent = c.name;
+      ui.glance.temp.textContent = Math.round(w.current_weather.temperature) + '°';
+      ui.glance.icon.textContent = getWeatherIcon(w.current_weather.weathercode);
+    }
+  } catch (e) { console.log("Glance load failed"); }
 }
 
 async function resolve(name) {
-  const r = await fetch(`${API.GEO}?name=${encodeURIComponent(name)}&count=1&language=en&format=json`);
-  const d = await r.json();
-  if (!d.results) return null;
-  return { lat: d.results[0].latitude, lon: d.results[0].longitude, name: d.results[0].name };
+  try {
+    // Clean up input (remove "Current Location" placeholder text if sent literally)
+    if (name === "Current Location" || name === "GPS Lock") return state.coords.start;
+
+    const r = await fetch(`${API.GEO}?name=${encodeURIComponent(name)}&count=1&language=en&format=json`);
+    const d = await r.json();
+    if (!d.results || d.results.length === 0) return null;
+    return { lat: d.results[0].latitude, lon: d.results[0].longitude, name: d.results[0].name };
+  } catch (e) { return null; }
 }
 
 async function fetchRoute(s, e) {
-  const r = await fetch(`${API.ROUTE}/${s.lon},${s.lat};${e.lon},${e.lat}?overview=false`);
+  // Try OSRM
+  const url = `${API.ROUTE}/${s.lon},${s.lat};${e.lon},${e.lat}?overview=false`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("OSRM Server Error");
   const d = await r.json();
+  if (d.code !== "Ok") throw new Error("No driving route found");
   return { duration: d.routes[0].duration, distance: d.routes[0].distance };
+}
+
+function calculateFallbackRoute(s, e) {
+  // Haversine Distance (Crow flies)
+  const R = 6371e3; // metres
+  const φ1 = s.lat * Math.PI / 180;
+  const φ2 = e.lat * Math.PI / 180;
+  const Δφ = (e.lat - s.lat) * Math.PI / 180;
+  const Δλ = (e.lon - s.lon) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in meters
+
+  // Estimate duration (60km/h average)
+  const speed = 60 * 1000 / 3600; // m/s
+  const time = d / speed;
+
+  return { distance: d, duration: time };
 }
 
 async function fetchWeather(c) {
@@ -183,15 +236,15 @@ function buddySay(t) {
   setTimeout(() => ui.buddy.chat.classList.add('hidden'), 4000);
 }
 
+// GPS (Fixed for consistency)
 ui.inputs.locate.addEventListener('click', () => {
   if (navigator.geolocation) {
-    buddySay("Triangulating position...");
+    buddySay("Scanning satellites...");
     navigator.geolocation.getCurrentPosition(pos => {
       ui.inputs.start.value = "Current Location";
-      // Deep resolving logic skipped for brevity, simpler in production
-      state.coords.start = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: "GPS Lock" };
-      refreshGlance("London"); // Fallback usage for glance
-      buddySay("GPS Locked. 🛰️");
-    });
+      state.coords.start = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: "GPS Data" };
+      refreshGlance("London"); // Just to keep glance UI active, real users would want reverse geocode but that needs API key usually. We stick to internal coords for now.
+      buddySay("Position Locked. 🛰️");
+    }, () => buddySay("GPS denied."));
   }
 });
