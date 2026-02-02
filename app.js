@@ -1,5 +1,5 @@
 // OpenWeather API Configuration
-const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your OpenWeather API key
+const API_KEY = 'ee801d3cffae23e0070a6bc59a1d6ffd'; // Your OpenWeather API key
 const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 
 // DOM Elements
@@ -38,12 +38,12 @@ window.addEventListener('load', () => {
  */
 function handleSearch() {
   const city = cityInput.value.trim();
-  
+
   if (city === '') {
     showError('Please enter a city name');
     return;
   }
-  
+
   getWeatherData(city);
 }
 
@@ -56,13 +56,13 @@ async function getWeatherData(city) {
     // Show loading state
     showLoading();
     hideError();
-    
+
     // Construct API URL
     const url = `${API_URL}?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
-    
+
     // Fetch data
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error('City not found. Please try another city.');
@@ -72,12 +72,12 @@ async function getWeatherData(city) {
         throw new Error('Failed to fetch weather data. Please try again.');
       }
     }
-    
+
     const data = await response.json();
-    
+
     // Display weather data
     displayWeatherData(data);
-    
+
   } catch (error) {
     console.error('Error fetching weather data:', error);
     showError(error.message);
@@ -92,32 +92,32 @@ async function getWeatherData(city) {
 function displayWeatherData(data) {
   // Update city name and country
   cityName.textContent = `${data.name}, ${data.sys.country}`;
-  
+
   // Update date
   const date = new Date();
   currentDate.textContent = formatDate(date);
-  
+
   // Update temperature
   temperature.textContent = `${Math.round(data.main.temp)}°C`;
-  
+
   // Update weather description
   weatherDescription.textContent = data.weather[0].description;
-  
+
   // Update weather icon
   const iconCode = data.weather[0].icon;
   weatherIcon.src = `https://openweathermap.org/img/wn/${iconCode}@4x.png`;
   weatherIcon.alt = data.weather[0].description;
-  
+
   // Update weather details
   feelsLike.textContent = `${Math.round(data.main.feels_like)}°C`;
   humidity.textContent = `${data.main.humidity}%`;
   windSpeed.textContent = `${(data.wind.speed * 3.6).toFixed(1)} km/h`;
   pressure.textContent = `${data.main.pressure} hPa`;
-  
+
   // Show weather card
   hideLoading();
   weatherCard.classList.add('active');
-  
+
   // Clear input
   cityInput.value = '';
 }
@@ -128,10 +128,10 @@ function displayWeatherData(data) {
  * @returns {string} Formatted date string
  */
 function formatDate(date) {
-  const options = { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
+  const options = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -161,7 +161,7 @@ function hideLoading() {
 function showError(message) {
   errorMessage.textContent = message;
   errorMessage.classList.add('active');
-  
+
   // Auto-hide error after 5 seconds
   setTimeout(() => {
     hideError();
@@ -182,10 +182,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchCard = document.querySelector('.search-card');
     const x = (window.innerWidth - e.pageX * 2) / 100;
     const y = (window.innerHeight - e.pageY * 2) / 100;
-    
+
     searchCard.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${y}deg)`;
   });
-  
+
   // Reset transform on mouse leave
   document.addEventListener('mouseleave', () => {
     const searchCard = document.querySelector('.search-card');
