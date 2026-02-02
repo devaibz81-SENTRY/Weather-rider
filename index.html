@@ -11,110 +11,141 @@
 
 <body>
 
-  <!-- ✨ Animated Background particles handled by CSS -->
+  <!-- ✨ Dynamic Background tied to Weather -->
+  <div class="bg-layer" id="bgLayer"></div>
+
+  <!-- 🌤️ THE WEATHER BUDDY (Living UI Presence) -->
+  <div class="buddy-container" id="buddyWrapper">
+    <div class="buddy-body" id="buddyBody">
+      <div class="buddy-face">
+        <div class="eye left"></div>
+        <div class="eye right"></div>
+        <div class="mouth"></div>
+      </div>
+      <div class="buddy-rays" id="buddyRays"></div>
+    </div>
+    <div class="buddy-chat hidden" id="buddyChat">
+      Looking good out there, Rider! 🏍️
+    </div>
+  </div>
 
   <!-- 🚪 Screen 1: Login / Welcome -->
   <div class="screen login-screen" id="loginScreen">
-    <div class="login-card glass-panel">
+    <div class="login-card glass-panel tilt-card">
       <div class="logo-animate">🏍️</div>
       <h1>Weather Rider</h1>
-      <p>Your ultimate ride companion</p>
+      <p>Ride Smart. Ride Safe.</p>
       <button class="cta-btn pulse" id="enterBtn">Start Engines</button>
     </div>
   </div>
 
-  <!-- 🏎️ Screen 2: Main Dashboard (Hidden initially) -->
+  <!-- 🏎️ Screen 2: Main Dashboard -->
   <div class="screen dashboard-screen hidden" id="dashboardScreen">
 
-    <!-- 🟢 Status Bar -->
+    <!-- Header -->
     <header class="app-header">
       <div class="logo-small">Weather Rider</div>
       <div class="user-profile">
         <span>Rider One</span>
-        <div class="avatar">👤</div>
+        <div class="avatar">😎</div>
       </div>
     </header>
 
-    <!-- 📍 Trip Planner Card -->
+    <!-- Trip Planner -->
     <div class="glass-panel trip-planner" id="plannerPanel">
-      <h2>Plan Your Ride</h2>
+      <h2>Plan Your Mission</h2>
 
-      <div class="input-group">
-        <label>🏁 Start Point</label>
-        <div class="input-wrapper">
-          <input type="text" id="startLocation" placeholder="Current Location" value="London">
-          <button class="icon-btn" id="locateMeBtn">📍</button>
+      <div class="input-container">
+        <!-- Start -->
+        <div class="smart-input-group">
+          <span class="input-icon">🟢</span>
+          <input type="text" id="startLocation" placeholder="My Location" value="London">
+          <button class="loc-btn" id="locateMeBtn">📍</button>
+        </div>
+
+        <!-- Connector Line -->
+        <div class="route-line"></div>
+
+        <!-- End -->
+        <div class="smart-input-group">
+          <span class="input-icon">🏁</span>
+          <input type="text" id="endLocation" placeholder="Destination (e.g. Manchester)">
         </div>
       </div>
 
-      <div class="input-group">
-        <label>🏁 Destination</label>
-        <div class="input-wrapper">
-          <input type="text" id="endLocation" placeholder="Where to? (e.g. Manchester)">
-        </div>
+      <div class="activity-selector">
+        <button class="act-btn active" data-type="ride">🏍️ Ride</button>
+        <button class="act-btn" data-type="run">🏃 Run</button>
+        <button class="act-btn" data-type="cycle">🚴 Cycle</button>
       </div>
 
-      <button class="action-btn" id="calculateRideBtn">Analyze Route</button>
+      <button class="action-btn" id="calculateRideBtn">
+        <span class="btn-text">Analyze Route</span>
+        <span class="btn-loader hidden"></span>
+      </button>
     </div>
 
-    <!-- 📊 Stats Pop-out (Hidden Drawer) -->
-    <div class="stats-drawer" id="statsDrawer">
-      <div class="drawer-handle"></div>
+  </div>
 
-      <div class="stats-header">
-        <h3>Ride Statistics</h3>
-        <span class="close-drawer" id="closeDrawer">✕</span>
+  <!-- 📽️ SIMULATION OVERLAY (The "Go Crazy" Map Window) -->
+  <div class="sim-overlay hidden" id="simOverlay">
+    <div class="sim-window glass-panel">
+
+      <!-- Sim Header -->
+      <div class="sim-header">
+        <div class="sim-title">
+          <h3>Simulation in Progress</h3>
+          <span class="sim-route-text" id="simTitleText">London ➔ Manchester</span>
+        </div>
+        <button class="close-sim" id="closeSim">✕</button>
       </div>
 
-      <div class="stats-grid">
-        <!-- Travel Time -->
-        <div class="stat-card">
-          <div class="stat-icon">⏱️</div>
-          <div class="stat-info">
-            <span class="stat-label">Est. Time</span>
-            <span class="stat-value" id="travelTime">--:--</span>
-          </div>
+      <!-- Live Map Animation Area -->
+      <div class="sim-map-area">
+        <div class="sim-track">
+          <div class="track-line"></div>
+          <div class="track-progress" id="trackProgress"></div>
+          <div class="sim-avatar" id="simAvatar">🏍️</div>
+
+          <!-- Waypoints -->
+          <div class="waypoint start">🏠</div>
+          <div class="waypoint end">🏁</div>
         </div>
 
-        <!-- Arrival Weather -->
-        <div class="stat-card">
-          <div class="stat-icon">🌤️</div>
-          <div class="stat-info">
-            <span class="stat-label">Arrival Weather</span>
-            <span class="stat-value" id="arrivalTemp">--°</span>
-          </div>
-        </div>
+        <!-- Dynamic Conditions Overlay -->
+        <div class="sim-weather-effects" id="simEffects"></div>
+      </div>
 
-        <!-- Wind Conditions -->
-        <div class="stat-card">
-          <div class="stat-icon">💨</div>
-          <div class="stat-info">
-            <span class="stat-label">Wind Gusts</span>
-            <span class="stat-value" id="windGust">-- km/h</span>
-          </div>
+      <!-- Live Telemetry Grid -->
+      <div class="telemetry-grid">
+        <div class="t-card">
+          <span class="t-label">Distance</span>
+          <span class="t-val" id="simDist">0 km</span>
+        </div>
+        <div class="t-card">
+          <span class="t-label">Temp</span>
+          <span class="t-val" id="simTemp">--°</span>
+        </div>
+        <div class="t-card">
+          <span class="t-label">Wind</span>
+          <span class="t-val alert" id="simWind">--</span>
+        </div>
+        <div class="t-card">
+          <span class="t-label">UV</span>
+          <span class="t-val" id="simUV">--</span>
         </div>
       </div>
 
-      <!-- Hourly Timeline Mockup -->
-      <div class="timeline-section">
-        <h4>Hourly Forecast</h4>
-        <div class="timeline-scroll" id="hourlyTimeline">
-          <!-- Items will be injected by JS -->
+      <!-- 🧠 AI Analysis Card -->
+      <div class="ai-card" id="aiCard">
+        <div class="ai-header">
+          <span class="ai-icon">✨</span>
+          <h4>Buddy Insight</h4>
         </div>
+        <p class="ai-text" id="aiText">Analyzing route conditions...</p>
       </div>
+
     </div>
-
-    <!-- 🔴 Live Alert Widget (Floating) -->
-    <div class="weather-widget floating" id="weatherWidget">
-      <div class="widget-content">
-        <span class="weather-icon-small" id="currentIcon">🌤️</span>
-        <div>
-          <span class="temp-small" id="currentTemp">--°</span>
-          <span class="desc-small" id="currentDesc">Ready</span>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <script src="app.js"></script>
