@@ -1,547 +1,371 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
 
 :root {
-  --primary-accent: #00f2ff;
-  --secondary-accent: #7000ff;
-  --glass-bg: rgba(20, 25, 40, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --neon-glow: 0 0 15px rgba(0, 242, 255, 0.4);
-  --danger: #ff2a6d;
-  --text-main: #fff;
-  --text-muted: rgba(255, 255, 255, 0.6);
+  --bg-deep: #020617;
+  --bg-dark: #0f172a;
+  --accent: #00f2ff;
+  --accent-glow: 0 0 20px rgba(0, 242, 255, 0.3);
+  --text-main: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.5);
+  --glass: rgba(255, 255, 255, 0.05);
 }
 
 body {
   margin: 0;
   font-family: 'Outfit', sans-serif;
+  background-color: var(--bg-deep);
   color: var(--text-main);
-  background: #0f172a;
-  /* Fallback */
   height: 100vh;
   overflow: hidden;
+  transition: background 0.5s;
 }
 
-/* Background Layer */
+/* Background Gradients */
 .bg-layer {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  background: radial-gradient(circle at 50% 10%, #1e293b 0%, var(--bg-deep) 70%);
   z-index: -2;
-  transition: background 1s ease;
 }
 
-/* --- 🌤️ WEATHER BUDDY --- */
-.buddy-container {
+/* --- 🕶️ SUN BUDDY (Left Side) --- */
+.buddy-wrapper {
   position: fixed;
   top: 20px;
-  right: 20px;
+  left: 20px;
   z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  pointer-events: none;
-  /* Let clicks pass through */
+  cursor: pointer;
+  /* Clickable */
 }
 
-.buddy-body {
-  width: 80px;
-  height: 80px;
+.sun-body {
+  width: 70px;
+  height: 70px;
   background: linear-gradient(135deg, #ffd700, #ffaa00);
   border-radius: 50%;
+  box-shadow: 0 0 40px rgba(255, 170, 0, 0.4);
   position: relative;
-  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
-  animation: floatBuddy 4s ease-in-out infinite;
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.buddy-body.cloud {
-  background: linear-gradient(to bottom, #fff, #dfe9f3);
-  border-radius: 40px;
-  width: 100px;
-  height: 60px;
-  box-shadow: 0 5px 20px rgba(255, 255, 255, 0.4);
-}
-
-.buddy-face {
-  position: relative;
-  width: 40px;
-  height: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  top: 5px;
-}
-
-.eye {
-  width: 8px;
-  height: 8px;
-  background: #333;
-  border-radius: 50%;
-  animation: blink 4s infinite;
-}
-
-.mouth {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
-  height: 6px;
-  border-radius: 0 0 12px 12px;
-  background: #333;
-  transition: height 0.2s;
-}
-
-/* Talking Animation */
-.buddy-body.talking .mouth {
-  animation: talk 0.3s infinite;
-  height: 8px;
-}
-
-.buddy-chat {
-  background: rgba(255, 255, 255, 0.95);
-  color: #333;
-  padding: 12px 20px;
-  border-radius: 20px 20px 0 20px;
-  /* Speech bubble shape */
-  font-weight: 600;
-  margin-top: 10px;
-  font-size: 0.9rem;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  transform-origin: top right;
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  max-width: 250px;
-}
-
-@keyframes blink {
-
-  0%,
-  48%,
-  52%,
-  100% {
-    transform: scaleY(1);
-  }
-
-  50% {
-    transform: scaleY(0.1);
-  }
-}
-
-@keyframes floatBuddy {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes talk {
-
-  0%,
-  100% {
-    height: 6px;
-  }
-
-  50% {
-    height: 10px;
-  }
-}
-
-/* --- UI COMPONENTS --- */
-.screen {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  transition: opacity 0.5s ease;
-}
-
-.hidden {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  border-radius: 24px;
-}
-
-/* Login */
-.login-screen {
-  justify-content: center;
-  align-items: center;
-}
-
-.login-card {
-  padding: 50px;
-  text-align: center;
-  max-width: 400px;
-  width: 90%;
-}
-
-.logo-animate {
-  font-size: 4rem;
-  margin-bottom: 20px;
-  animation: driveIn 1.5s ease-out;
-}
-
-@keyframes driveIn {
-  from {
-    transform: translateX(-100px) scale(0.5);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0) scale(1);
-    opacity: 1;
-  }
-}
-
-.cta-btn {
-  margin-top: 30px;
-  padding: 16px 40px;
-  background: linear-gradient(90deg, var(--primary-accent), var(--secondary-accent));
-  border: none;
-  border-radius: 50px;
-  color: white;
-  font-weight: 800;
-  font-size: 1.2rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  cursor: pointer;
-  box-shadow: var(--neon-glow);
   transition: transform 0.2s;
 }
 
-.cta-btn:hover {
-  transform: scale(1.05);
+.sun-body:active {
+  transform: scale(0.9);
 }
 
-/* Dashboard */
-.dashboard-screen {
-  padding: 20px;
+/* Sunglasses Emoji Overlay */
+.sunglasses {
+  font-size: 2.5rem;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.app-header {
+/* Eye Tracking Container (Hidden behind glasses, but concept remains if we remove glasses) */
+/* Actually, user asked for "Sun glass emoji on the other side" - assuming they mean wearing them? */
+/* Let's make eyes visible roughly through lenses or just below if we animate them looking */
+/* For eye tracking to work VISIBLY, we might need to remove the glasses emoji or animate the glasses themselves moving? */
+/* Let's Try: The whole sun rotates to look at mouse! Simpler and cooler. */
+
+.buddy-chat {
+  position: absolute;
+  top: 80px;
+  left: 0;
+  background: #fff;
+  color: #000;
+  padding: 10px 15px;
+  border-radius: 0 15px 15px 15px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  width: 200px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- 📊 AT A GLANCE HEADER --- */
+.glance-header {
+  position: fixed;
+  top: 30px;
+  right: 30px;
   display: flex;
-  justify-content: space-between;
+  gap: 20px;
   align-items: center;
-  margin-bottom: 30px;
+  text-align: right;
 }
 
-.user-profile {
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.avatar {
-  font-size: 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* Route Card */
-.trip-planner {
-  padding: 30px;
-  max-width: 500px;
-  margin: 0 auto;
-  position: relative;
-}
-
-.input-container {
+.glance-item {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  position: relative;
+  align-items: flex-end;
 }
 
-.smart-input-group {
+.g-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: var(--accent-glow);
+}
+
+.g-icon {
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+
+.g-label {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* --- MAIN DASH --- */
+.dashboard-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding-bottom: 100px;
+  /* Space for simulation */
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 900;
+  margin-bottom: 40px;
+  background: linear-gradient(to right, #fff, var(--text-dim));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -2px;
+}
+
+/* Floating Planner (No Boxes) */
+.floating-planner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.float-input-group {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 8px 15px;
-  border-radius: 12px;
-  border: 1px solid transparent;
+  width: 100%;
+  padding: 10px 0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
   transition: 0.3s;
 }
 
-.smart-input-group:focus-within {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--primary-accent);
-  box-shadow: var(--neon-glow);
+.float-input-group:focus-within {
+  border-bottom-color: var(--accent);
+  transform: scale(1.02);
 }
 
-.input-icon {
+.f-icon {
+  font-size: 1.2rem;
   margin-right: 15px;
-  font-size: 0.9rem;
+  opacity: 0.7;
 }
 
-.smart-input-group input {
-  flex: 1;
-  background: transparent;
+.float-input-group input {
+  background: none;
   border: none;
-  font-size: 1.1rem;
   color: #fff;
-  padding: 10px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  width: 100%;
   outline: none;
 }
 
-.route-line {
-  width: 2px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  margin-left: 23px;
-  /* Align with dots */
+.float-input-group input::placeholder {
+  color: var(--text-dim);
+  font-weight: 400;
 }
 
-.loc-btn {
-  background: none;
+.connector-dots span {
+  display: block;
+  text-align: center;
+  line-height: 0.5;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+}
+
+/* BIG BUTTON */
+.ride-btn {
+  margin-top: 30px;
+  background: var(--accent);
+  color: #000;
   border: none;
+  padding: 20px 60px;
   font-size: 1.2rem;
+  font-weight: 900;
+  border-radius: 30px;
+  /* Pill shape */
   cursor: pointer;
-  opacity: 0.7;
-  transition: 0.2s;
+  box-shadow: var(--accent-glow);
+  transition: 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.loc-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
+.ride-btn:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 10px 30px rgba(0, 242, 255, 0.5);
 }
 
-/* Activity Selector */
-.activity-selector {
+/* --- 🎒 PACKING LIST (Snarky) --- */
+.packing-list {
+  margin-top: 50px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.packing-list h3 {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.pack-items {
   display: flex;
-  gap: 10px;
-  margin: 25px 0;
   justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
-.act-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.gear-chip {
+  background: rgba(255, 255, 255, 0.1);
   padding: 10px 20px;
   border-radius: 20px;
-  color: #fff;
-  cursor: pointer;
-  transition: 0.3s;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  animation: popIn 0.4s backwards;
 }
 
-.act-btn.active {
-  background: var(--primary-accent);
-  color: #000;
-  box-shadow: var(--neon-glow);
-  border-color: var(--primary-accent);
-}
-
-.action-btn {
-  width: 100%;
-  padding: 18px;
-  background: linear-gradient(90deg, var(--secondary-accent), var(--primary-accent));
-  border: none;
-  border-radius: 16px;
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #fff;
-  cursor: pointer;
-  transition: 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-
-.action-btn:hover {
-  background: linear-gradient(90deg, var(--primary-accent), var(--secondary-accent));
-}
-
-/* --- 📽️ SIMULATION WINDOW --- */
+/* --- 📽️ SIMULATION OVERLAY --- */
 .sim-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
+  background: rgba(2, 6, 23, 0.95);
   z-index: 100;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
-  animation: fadeIn 0.3s forwards;
 }
 
-.sim-window {
+.sim-content {
   width: 100%;
   max-width: 600px;
-  background: #1a1f35;
-  border: 1px solid var(--primary-accent);
-  box-shadow: 0 0 50px rgba(0, 242, 255, 0.2);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  max-height: 90vh;
+  padding: 20px;
 }
 
 .sim-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 40px;
 }
 
-.sim-route-text {
-  font-size: 0.9rem;
-  color: var(--primary-accent);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.sim-header h2 {
+  font-size: 2rem;
+  margin: 0;
+  color: var(--accent);
 }
 
-.close-sim {
+.close-btn {
   background: none;
   border: none;
+  font-size: 2rem;
   color: #fff;
-  font-size: 1.5rem;
   cursor: pointer;
 }
 
-.sim-map-area {
-  height: 250px;
-  background: linear-gradient(to bottom, #0f172a, #1e293b);
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+.sim-track-container {
+  margin-bottom: 40px;
 }
 
-/* The Track Line */
-.sim-track {
-  width: 80%;
-  height: 6px;
+.track-bar {
+  width: 100%;
+  height: 4px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
   position: relative;
+  border-radius: 2px;
 }
 
-.track-progress {
+.track-fill {
   position: absolute;
-  top: 0;
   left: 0;
+  top: 0;
   height: 100%;
   width: 0%;
-  /* JS Animates this */
-  background: var(--primary-accent);
-  border-radius: 3px;
-  box-shadow: 0 0 10px var(--primary-accent);
-  transition: width 0.1s linear;
+  background: var(--accent);
+  box-shadow: var(--accent-glow);
 }
 
-.sim-avatar {
+.track-rider {
   position: absolute;
-  top: -20px;
+  top: -25px;
   left: 0%;
-  /* JS Animates this */
   font-size: 2rem;
   transform: translateX(-50%);
   transition: left 0.1s linear;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
 }
 
-.waypoint {
-  position: absolute;
-  top: -30px;
-  font-size: 1.5rem;
+.live-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
 }
 
-.waypoint.start {
-  left: -10px;
-}
-
-.waypoint.end {
-  right: -10px;
-}
-
-/* Grid Stats */
-.telemetry-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.t-card {
+.ls-item {
   text-align: center;
 }
 
-.t-label {
+.ls-val {
   display: block;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  margin-bottom: 5px;
+  font-size: 2.5rem;
+  font-weight: 900;
 }
 
-.t-val {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #fff;
+.ls-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 2px;
 }
 
-.t-val.alert {
-  color: var(--danger);
-  text-shadow: 0 0 10px rgba(255, 42, 109, 0.4);
-}
-
-/* AI Analysis */
-.ai-card {
-  margin: 20px;
-  background: linear-gradient(135deg, rgba(112, 0, 255, 0.2), rgba(0, 242, 255, 0.1));
-  border: 1px solid var(--secondary-accent);
-  padding: 20px;
-  border-radius: 16px;
-}
-
-.ai-header {
+.ai-insight {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 20px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  color: var(--primary-accent);
+  gap: 15px;
+  align-items: flex-start;
 }
 
-.ai-text {
-  font-size: 0.95rem;
+.ai-avatar {
+  font-size: 2rem;
+}
+
+.ai-insight p {
+  font-size: 1.1rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
 }
 
-/* Utils */
 .hidden {
   display: none !important;
 }

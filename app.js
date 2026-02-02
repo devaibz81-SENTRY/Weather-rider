@@ -1,275 +1,223 @@
-// 🚀 Weather Rider Ultimate - AI Simulation Logic
+// 🚀 Weather Rider: Dark Mode Edition
 
-// Endpoints
+// API (No Keys)
 const API = {
   GEO: 'https://geocoding-api.open-meteo.com/v1/search',
   WEATHER: 'https://api.open-meteo.com/v1/forecast',
   ROUTE: 'https://router.project-osrm.org/route/v1/driving'
 };
 
-// State
-const state = {
-  active: false,
-  coords: { start: null, end: null },
-  weather: null,
-  simInterval: null
-};
-
-// DOM Refs
+// DOM
 const ui = {
-  screens: {
-    login: document.getElementById('loginScreen'),
-    dash: document.getElementById('dashboardScreen')
-  },
   buddy: {
-    body: document.getElementById('buddyBody'),
-    chat: document.getElementById('buddyChat')
+    wrap: document.getElementById('buddyWrapper'),
+    chat: document.getElementById('buddyChat'),
+    eyes: {
+      left: document.getElementById('eyeLeft'),
+      right: document.getElementById('eyeRight')
+    }
+  },
+  glance: {
+    temp: document.getElementById('quickTemp'),
+    wind: document.getElementById('quickWind'),
+    desc: document.getElementById('quickDesc'),
+    icon: document.getElementById('quickIcon')
   },
   inputs: {
-    start: document.getElementById('startLocation'),
-    end: document.getElementById('endLocation'),
-    locate: document.getElementById('locateMeBtn'),
-    calc: document.getElementById('calculateRideBtn')
+    start: document.getElementById('startLoc'),
+    end: document.getElementById('endLoc'),
+    go: document.getElementById('goBtn')
+  },
+  pack: {
+    area: document.getElementById('packingList'),
+    list: document.getElementById('packItems')
   },
   sim: {
     overlay: document.getElementById('simOverlay'),
     close: document.getElementById('closeSim'),
-    title: document.getElementById('simTitleText'),
-    progress: document.getElementById('trackProgress'),
-    avatar: document.getElementById('simAvatar'),
-    dist: document.getElementById('simDist'),
+    title: document.getElementById('simRouteTitle'),
+    fill: document.getElementById('trackFill'),
+    rider: document.getElementById('trackRider'),
     temp: document.getElementById('simTemp'),
+    dist: document.getElementById('simDist'),
     wind: document.getElementById('simWind'),
-    uv: document.getElementById('simUV'),
-    aiText: document.getElementById('aiText')
+    ai: document.getElementById('aiMessage')
   }
 };
 
-// --- 🎬 Lifecycle ---
+const state = {
+  coords: { start: null, end: null },
+  weather: null,
+  simTimer: null
+};
 
+// --- 🎬 INIT ---
 document.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('rider_active')) {
-    switchScreen('dash');
-    buddySay("Welcome back! Ready for a mission? 🏍️");
-  } else {
-    buddySay("I'm cloudBuddy! Start your engines! 🌤️");
-  }
+  // 1. Load Last Location
+  const lastLoc = localStorage.getItem('rider_last_loc') || 'London';
+  ui.inputs.start.value = lastLoc;
+
+  // 2. Fetch "Glance" Data immediately
+  resolveCity(lastLoc).then(coords => {
+    if (coords) {
+      state.coords.start = coords;
+      fetchWeather(coords).then(updateGlance);
+    }
+  });
+
+  buddySay("Ready to ride? 🕶️");
 });
 
-document.getElementById('enterBtn').addEventListener('click', () => {
-  localStorage.setItem('rider_active', 'true');
-  switchScreen('dash');
-  buddySay("Let's plan a route. Where are we heading?");
+// --- 👁️ EYE TRACKING ---
+document.addEventListener('mousemove', (e) => {
+  const eyes = [ui.buddy.eyes.left, ui.buddy.eyes.right];
+  eyes.forEach(eye => {
+    const rect = eye.getBoundingClientRect();
+    const x = (rect.left) + (rect.width / 2);
+    const y = (rect.top) + (rect.height / 2);
+    const rad = Math.atan2(e.pageX - x, e.pageY - y);
+    const rot = (rad * (180 / Math.PI) * -1) + 180;
+    eye.style.transform = `rotate(${rot}deg)`;
+  });
 });
 
-// --- 🧠 Actions ---
-
-ui.inputs.locate.addEventListener('click', () => {
-  if (navigator.geolocation) {
-    ui.inputs.start.value = "Scanning...";
-    navigator.geolocation.getCurrentPosition(pos => {
-      ui.inputs.start.value = "Current Location";
-      state.coords.start = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: "Current Location" };
-      buddySay("Got your coords! 🛰️");
-    }, () => {
-      ui.inputs.start.value = "London";
-      buddySay("Couldn't find you. Using London for now.");
-    });
-  }
+// Toggle Dark/Light (Just resets animation for now as requested)
+ui.buddy.wrap.addEventListener('click', () => {
+  document.body.style.filter = document.body.style.filter ? "" : "contrast(1.2) brightness(0.8)";
+  buddySay("Dark mode engaged. 🌙");
 });
 
-ui.inputs.calc.addEventListener('click', async () => {
-  const dest = ui.inputs.end.value;
-  if (!dest) return buddySay("Hey! We need a destination! 🏁");
+// --- 🚀 ACTION ---
+ui.inputs.go.addEventListener('click', async () => {
+  const start = ui.inputs.start.value;
+  const end = ui.inputs.end.value;
 
-  setLoading(true);
-  buddySay("Calculating optimal trajectory... 📡");
+  if (!end) return buddySay("Where are we going? 🤷‍♂️");
+
+  ui.inputs.go.innerHTML = "<span>📡 SCANNING...</span>";
 
   try {
-    // 1. Resolve Locations
-    if (!state.coords.start) state.coords.start = await resolveCity(ui.inputs.start.value);
-    state.coords.end = await resolveCity(dest);
+    // 1. Resolve
+    if (!state.coords.start) state.coords.start = await resolveCity(start);
+    state.coords.end = await resolveCity(end);
 
-    if (!state.coords.start || !state.coords.end) throw new Error("Location lost.");
+    // Save
+    localStorage.setItem('rider_last_loc', start);
 
-    // 2. Get Route Info
+    // 2. Route & Weather
     const route = await fetchRoute(state.coords.start, state.coords.end);
-
-    // 3. Get Forecast
     const weather = await fetchWeather(state.coords.end);
-    state.weather = weather;
 
-    // 4. Start Simulation
-    setLoading(false);
+    // 3. Show Packing List (Snarky)
+    generatePackingList(weather);
+    ui.pack.area.classList.remove('hidden');
+
+    // 4. Start Sim
     startSimulation(route, weather);
 
-  } catch (err) {
-    console.error(err);
-    buddySay("Error: " + err.message);
-    setLoading(false);
+  } catch (e) {
+    console.error(e);
+    buddySay("Navigation Error. Try again.");
+  } finally {
+    ui.inputs.go.innerHTML = "<span>🚀 PLAN MISSION</span>";
   }
 });
 
-ui.sim.close.addEventListener('click', stopSimulation);
+ui.sim.close.addEventListener('click', () => {
+  ui.sim.overlay.classList.add('hidden');
+  clearInterval(state.simTimer);
+});
 
-// --- 🎮 Simulation Engine ---
+// --- 🧠 LOGIC ---
+
+function updateGlance(data) {
+  const curr = data.current_weather;
+  ui.glance.temp.textContent = Math.round(curr.temperature) + '°';
+  ui.glance.wind.textContent = curr.windspeed + 'k';
+
+  const code = curr.weathercode;
+  const info = getWeatherInfo(code);
+  ui.glance.desc.textContent = info.desc;
+  ui.glance.icon.textContent = info.icon;
+}
+
+function generatePackingList(data) {
+  const curr = data.current_weather;
+  const temp = curr.temperature;
+  const code = curr.weathercode;
+  const items = [];
+
+  // Logic
+  if (temp < 10) items.push("Winter Jacket 🧥", "Frozen Tears ❄️");
+  else if (temp > 25) items.push("Sunscreen 🧴", "Hydration 💧");
+  else items.push("Light Jacket 🧥");
+
+  if (code >= 51) items.push("Umbrella ☔", "Kayak 🛶");
+  if (code === 0) items.push("Sunglasses 🕶️");
+
+  // Render
+  ui.pack.list.innerHTML = items.map(i => `<div class="gear-chip">${i}</div>`).join('');
+}
 
 function startSimulation(route, weather) {
-  // Show Overlay
   ui.sim.overlay.classList.remove('hidden');
   ui.sim.title.textContent = `${state.coords.start.name} ➔ ${state.coords.end.name}`;
 
-  // AI Analysis Init
-  generateAIInsight(route, weather);
+  // AI Message
+  const time = Math.round(route.duration / 60);
+  ui.sim.ai.textContent = `Mission confirmed. ETA ${time} mins. Weather looks ${getWeatherInfo(weather.current_weather.weathercode).desc}. Watch your six.`;
 
-  // Reset Bars
-  ui.sim.progress.style.width = '0%';
-  ui.sim.avatar.style.left = '0%';
-
+  // Reset
   let progress = 0;
-  const totalDist = route.distance / 1000; // km
+  const distTotal = route.distance / 1000;
 
-  // Start Loop
-  if (state.simInterval) clearInterval(state.simInterval);
+  if (state.simTimer) clearInterval(state.simTimer);
 
-  state.simInterval = setInterval(() => {
-    progress += 0.5; // Speed of sim
+  state.simTimer = setInterval(() => {
+    progress += 0.4;
 
-    // 1. Visual Update
-    ui.sim.progress.style.width = `${progress}%`;
-    ui.sim.avatar.style.left = `${progress}%`;
+    ui.sim.fill.style.width = progress + '%';
+    ui.sim.rider.style.left = progress + '%';
 
-    // 2. Data Update (Interpolate/Randomize slightly to feel "live")
-    updateLiveTelemetry(progress, totalDist, weather);
+    // Live update
+    ui.sim.dist.textContent = (distTotal * (progress / 100)).toFixed(1) + 'km';
+    ui.sim.temp.textContent = weather.current_weather.temperature + '°';
+    ui.sim.wind.textContent = weather.current_weather.windspeed + 'k';
 
-    // 3. End Condition
-    if (progress >= 100) {
-      clearInterval(state.simInterval);
-      buddySay("Mission Complete! Ride looks solid. 🏎️");
-    }
-
-  }, 50); // 20fps
+    if (progress >= 100) clearInterval(state.simTimer);
+  }, 30);
 }
 
-function stopSimulation() {
-  ui.sim.overlay.classList.add('hidden');
-  if (state.simInterval) clearInterval(state.simInterval);
-}
-
-function updateLiveTelemetry(pct, totalDist, weather) {
-  const currentDist = (totalDist * (pct / 100)).toFixed(1);
-  const w = weather.current_weather;
-
-  // Mock Variation: Add slight noise to temp/wind based on position
-  const noise = (Math.sin(pct / 10) * 2).toFixed(1);
-  const liveTemp = (parseFloat(w.temperature) + parseFloat(noise)).toFixed(1);
-  const liveWind = (parseFloat(w.windspeed) + Math.random()).toFixed(1);
-
-  ui.sim.dist.textContent = `${currentDist} km`;
-  ui.sim.temp.textContent = `${liveTemp}°`;
-  ui.sim.wind.textContent = `${liveWind} km/h`;
-
-  // Find UV from hourly array (approx)
-  const hour = new Date().getHours();
-  const uv = weather.hourly.uv_index[hour] || 0;
-  ui.sim.uv.textContent = uv;
-}
-
-function generateAIInsight(route, weather) {
-  const w = weather.current_weather;
-  const time = (route.duration / 60).toFixed(0);
-  const code = w.weathercode;
-
-  let mood = "Neutral";
-  let advice = "";
-
-  // Simple AI Logic
-  if (code === 0) {
-    mood = "Great";
-    advice = "Perfect conditions! UV might be high, wear shades. 😎";
-    setBuddyMood('happy');
-  } else if (code >= 60) {
-    mood = "Caution";
-    advice = "Rain expected. Slick roads ahead. Engage traction control. 🌧️";
-    setBuddyMood('sad');
-  } else {
-    advice = "Standard ride. Watch for crosswinds on highways.";
-    setBuddyMood('neutral');
-  }
-
-  const text = `
-    <strong>Target:</strong> ${state.coords.end.name}<br>
-    <strong>Est. Duration:</strong> ${time} mins<br>
-    <strong>Strategy:</strong> ${advice}
-  `;
-
-  typewriterEffect(ui.sim.aiText, text);
-}
-
-// --- 🛠️ Helpers ---
-
-function switchScreen(name) {
-  if (name === 'dash') {
-    ui.screens.login.classList.add('hidden');
-    ui.screens.dash.classList.remove('hidden');
-  } else {
-    ui.screens.dash.classList.add('hidden');
-    ui.screens.login.classList.remove('hidden');
-  }
-}
-
-function buddySay(msg) {
-  ui.buddy.chat.classList.remove('hidden');
-  ui.buddy.chat.textContent = msg;
-  ui.buddy.body.classList.add('talking');
-
-  // Hide Bubble after 4s
-  setTimeout(() => {
-    ui.buddy.chat.classList.add('hidden');
-    ui.buddy.body.classList.remove('talking');
-  }, 4000);
-}
-
-function setBuddyMood(mood) {
-  // Can expand simply by changing colors or eyes in CSS classes
-  // For now we just animate
-  ui.buddy.body.style.animationDuration = mood === 'happy' ? '2s' : '5s';
-}
-
-function typewriterEffect(el, html) {
-  el.innerHTML = html; // Simple insert for now to support HTML tags
-}
-
-function setLoading(isLoading) {
-  const loader = ui.inputs.calc.querySelector('.btn-loader');
-  const text = ui.inputs.calc.querySelector('.btn-text');
-
-  if (isLoading) {
-    text.classList.add('hidden');
-    loader.classList.remove('hidden');
-  } else {
-    text.classList.remove('hidden');
-    loader.classList.add('hidden');
-  }
-}
-
-// --- 📡 API Utils (Same as before) ---
-
+// --- API UTILS ---
 async function resolveCity(name) {
   const res = await fetch(`${API.GEO}?name=${encodeURIComponent(name)}&count=1&language=en&format=json`);
-  const data = await res.json();
-  if (!data.results) return null;
-  return { lat: data.results[0].latitude, lon: data.results[0].longitude, name: data.results[0].name };
+  const d = await res.json();
+  if (!d.results) return null;
+  return { lat: d.results[0].latitude, lon: d.results[0].longitude, name: d.results[0].name };
 }
 
 async function fetchRoute(start, end) {
   const res = await fetch(`${API.ROUTE}/${start.lon},${start.lat};${end.lon},${end.lat}?overview=false`);
-  const data = await res.json();
-  return { duration: data.routes[0].duration, distance: data.routes[0].distance };
+  const d = await res.json();
+  return { duration: d.routes[0].duration, distance: d.routes[0].distance };
 }
 
 async function fetchWeather(coords) {
-  const url = `${API.WEATHER}?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true&hourly=temperature_2m,weathercode,uv_index&windspeed_unit=kmh`;
-  const res = await fetch(url);
+  const res = await fetch(`${API.WEATHER}?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true&hourly=temperature_2m,weathercode`);
   return await res.json();
+}
+
+// Map WMO codes
+function getWeatherInfo(code) {
+  if (code === 0) return { desc: 'Clear', icon: '☀️' };
+  if (code <= 3) return { desc: 'Cloudy', icon: '☁️' };
+  if (code <= 67) return { desc: 'Rain', icon: '🌧️' };
+  if (code <= 99) return { desc: 'Storm', icon: '⚡' };
+  return { desc: 'Unknown', icon: '❓' };
+}
+
+function buddySay(msg) {
+  ui.buddy.chat.textContent = msg;
+  ui.buddy.chat.classList.remove('hidden');
+  setTimeout(() => ui.buddy.chat.classList.add('hidden'), 4000);
 }
