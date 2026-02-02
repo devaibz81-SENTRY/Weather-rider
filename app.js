@@ -1,4 +1,4 @@
-// 🚀 Weather Rider: Cockpit Edition (Stable Navigation Fix)
+// 🚀 Weather Rider: Cockpit Edition (Charts & Graphs)
 
 const API = {
   GEO: 'https://geocoding-api.open-meteo.com/v1/search',
@@ -11,223 +11,196 @@ const ui = {
   tabs: document.querySelectorAll('.tab-btn'),
   inputs: { start: document.getElementById('startLoc'), end: document.getElementById('endLoc'), go: document.getElementById('goBtn'), locate: document.getElementById('locateBtn') },
   insight: { panel: document.getElementById('insightPanel'), text: document.getElementById('missionText'), temp: document.getElementById('briefTemp'), wind: document.getElementById('briefWind'), rain: document.getElementById('briefRain'), gear: document.getElementById('gearRow') },
+  charts: { area: document.getElementById('chartsArea'), rain: document.getElementById('rainChart'), temp: document.getElementById('tempChart'), wind: document.getElementById('windChart') },
   sim: { overlay: document.getElementById('simOverlay'), close: document.getElementById('closeSim'), fill: document.getElementById('trackFill'), rider: document.getElementById('trackRider'), dist: document.getElementById('simDist'), temp: document.getElementById('simTemp'), wind: document.getElementById('simWind') },
   glance: { city: document.getElementById('lastCity'), temp: document.getElementById('lastTemp'), icon: document.getElementById('lastIcon') }
 };
 
 const state = {
-  mode: 'ride', // ride | run | cycle
+  mode: 'ride',
   coords: { start: null, end: null },
   weather: null,
   simTimer: null
 };
 
-// --- 🎬 INIT ---
 document.addEventListener('DOMContentLoaded', () => {
   const last = localStorage.getItem('wr_last') || 'London';
   ui.inputs.start.value = last;
   refreshGlance(last);
-  buddySay("Systems Online. 🌤️");
+  buddySay("Charts Online. 📊");
 });
 
-// --- 🎛️ TABS ---
+// --- INTERACTIONS ---
 ui.tabs.forEach(btn => {
   btn.addEventListener('click', () => {
     ui.tabs.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.mode = btn.dataset.type;
-
-    // Update Rider Icon
-    const icons = { ride: '🏍️', run: '🏃', cycle: '🚴' };
-    ui.sim.rider.textContent = icons[state.mode];
-
-    buddySay(`Switching to ${state.mode.toUpperCase()} mode.`);
+    ui.sim.rider.textContent = { ride: '🏍️', run: '🏃', cycle: '🚴' }[state.mode];
+    buddySay(`Mode: ${state.mode.toUpperCase()}`);
   });
 });
 
-// --- 🚀 ANALYZE ---
 ui.inputs.go.addEventListener('click', async () => {
   const dest = ui.inputs.end.value;
-  if (!dest) return buddySay("Missing Danger Zone (Destination) 🚫");
+  if (!dest) return buddySay("Target Required! 🎯");
 
-  ui.inputs.go.textContent = "🔁 CALCULATING...";
+  ui.inputs.go.textContent = "🔁 SCANNING...";
   ui.inputs.go.style.opacity = "0.7";
 
   try {
-    // 1. Resolve Start
     if (!ui.inputs.start.value) ui.inputs.start.value = 'London';
+    const s = await resolve(ui.inputs.start.value);
+    const e = await resolve(dest);
+    if (!s || !e) throw new Error("Location Error");
 
-    const startCoords = await resolve(ui.inputs.start.value);
-    if (!startCoords) throw new Error(`Unknown start: ${ui.inputs.start.value}`);
-    state.coords.start = startCoords;
+    state.coords.start = s;
+    state.coords.end = e;
+    localStorage.setItem('wr_last', s.name);
 
-    // 2. Resolve End
-    const endCoords = await resolve(dest);
-    if (!endCoords) throw new Error(`Unknown dest: ${dest}`);
-    state.coords.end = endCoords;
+    // Route & Weather
+    let route;
+    try { route = await fetchRoute(s, e); } catch { route = calcFallback(s, e); }
 
-    // 3. Data (With Fallback)
-    // We try real routing first. If it fails (water/server), we mock it using math.
-    let route = null;
-    try {
-      route = await fetchRoute(state.coords.start, state.coords.end);
-    } catch (routeErr) {
-      console.warn("Routing failed (likely ocean or server). Using fallback math.");
-      route = calculateFallbackRoute(state.coords.start, state.coords.end);
-    }
+    const weather = await fetchWeather(e);
+    state.weather = weather;
 
-    const weather = await fetchWeather(state.coords.end);
-    state.weather = weather; // Store for sim
+    // RENDER EVERYTHING
+    generateBriefing(weather, route);
+    renderCharts(weather.hourly);
 
-    // 4. BRIEFING
-    generateBriefing(weather, route); // route is guaranteed to exist now
-
-    // 5. Ready to Sim
     ui.inputs.go.textContent = "🚀 LAUNCH SIMULATION";
     ui.inputs.go.style.opacity = "1";
-    ui.inputs.go.onclick = () => startSim(route, weather); // Re-bind click
+    ui.inputs.go.onclick = () => startSim(route, weather);
 
-  } catch (e) {
-    console.error(e);
-    buddySay("Error: " + e.message);
+  } catch (err) {
+    console.error(err);
+    buddySay("Sys Failure: Check Data");
     ui.inputs.go.textContent = "ANALYZE CONDITIONS";
     ui.inputs.go.style.opacity = "1";
   }
 });
 
-// --- 🧠 INTELLIGENCE ---
 function generateBriefing(data, route) {
   ui.insight.panel.classList.remove('hidden');
-
   const cur = data.current_weather;
   const hr = data.hourly;
   const idx = new Date().getHours();
 
-  // Fill Grid
   ui.insight.temp.textContent = Math.round(cur.temperature) + '°';
   ui.insight.wind.textContent = cur.windspeed + 'k';
   ui.insight.rain.textContent = (hr.precipitation_probability[idx] || 0) + '%';
 
-  // Custom Advice per Mode
   let advice = "";
-  const gear = [];
+  let gear = [];
 
   if (state.mode === 'run') {
-    if (cur.temperature > 20) advice = "High heat index. Hydrate every 2km.";
-    else advice = "Optimum running temps through sector 4.";
-    gear.push("Running Shoes 👟", "Water 💧");
-  }
-  else if (state.mode === 'cycle') {
-    if (cur.windspeed > 15) advice = "Strong headwinds detected. Energy expenditure +20%.";
-    else advice = "Tarmac checks out. Green light for speed.";
-    gear.push("Helmet ⛑️", "Gloves 🧤");
-  }
-  else { // Ride
-    if (hr.precipitation_probability[idx] > 30) advice = "Slick roads possible. TCS recommended.";
-    else advice = "Dry tarmac. Lean angles optimal.";
-    gear.push("Leather Jacket 🧥", "Visor Cleaner 🧽");
+    advice = cur.temperature > 20 ? "Heat Alert. Hydrate." : "Conditions Nominal.";
+    gear = ["Shoes 👟", "Water 💧"];
+  } else if (state.mode === 'cycle') {
+    advice = cur.windspeed > 15 ? "High Drag Detected." : "Aero Green.";
+    gear = ["Helmet ⛑️", "Gloves 🧤"];
+  } else {
+    advice = (hr.precipitation_probability[idx] > 30) ? "Wet Surface Warning." : "Tarmac Dry.";
+    gear = ["Jacket 🧥", "Visor 🧽"];
   }
 
-  const distKm = Math.round(route.distance / 1000);
-  ui.insight.text.textContent = `Distance: ${distKm}km. ${advice}`;
+  ui.insight.text.textContent = `Dist: ${Math.round(route.distance / 1000)}km. ${advice}`;
   ui.insight.gear.innerHTML = gear.map(g => `<span class="gear-tag">${g}</span>`).join('');
 }
 
-// --- 🎮 SIMULATION ---
-function startSim(route, weather) {
-  ui.sim.overlay.classList.remove('hidden');
+// --- 📊 CHART ENGINE ---
+function renderCharts(hourly) {
+  ui.charts.area.classList.remove('hidden');
+  const now = new Date().getHours();
+  const range = 6;
 
-  // Simple Reset Listener
-  ui.sim.close.onclick = () => {
-    ui.sim.overlay.classList.add('hidden');
-    clearInterval(state.simTimer);
-    // Reset Main Button state by reloading page (simplest clean slate) or logic reset
-    location.reload();
+  // 1. Rain Bars
+  ui.charts.rain.innerHTML = '';
+  for (let i = 0; i < range; i++) {
+    const val = hourly.precipitation_probability[now + i] || 0;
+    const bar = document.createElement('div');
+    bar.className = 'c-bar';
+    bar.style.height = `${Math.max(val, 5)}%`;
+    bar.title = `${new Date().getHours() + i}:00 - ${val}%`;
+    ui.charts.rain.appendChild(bar);
+  }
+
+  // 2. Line Graphs
+  const drawLine = (set, cls) => {
+    const slice = set.slice(now, now + range);
+    const min = Math.min(...slice);
+    const max = Math.max(...slice);
+    const diff = (max - min) || 1;
+
+    const pts = slice.map((v, i) => {
+      const x = (i / (range - 1)) * 100;
+      const y = 40 - ((v - min) / diff) * 30 - 5;
+      return `${x},${y}`;
+    }).join(' ');
+
+    return `<polyline points="${pts}" class="chart-line ${cls}" />`;
   };
 
+  ui.charts.temp.innerHTML = drawLine(hourly.temperature_2m, 'line-temp');
+  ui.charts.wind.innerHTML = drawLine(hourly.windspeed_10m, 'line-wind');
+}
+
+function startSim(route, weather) {
+  ui.sim.overlay.classList.remove('hidden');
+  ui.sim.close.onclick = () => location.reload();
+
   let pct = 0;
-  const total = route.distance / 1000;
+  const tot = route.distance / 1000;
 
   state.simTimer = setInterval(() => {
     pct += 0.5;
     ui.sim.fill.style.width = pct + '%';
     ui.sim.rider.style.left = pct + '%';
-
-    // Live Stats with Jitter
-    ui.sim.dist.textContent = (total * (pct / 100)).toFixed(1) + 'km';
-    ui.sim.temp.textContent = (weather.current_weather.temperature + (Math.random() - 0.5)).toFixed(1) + '°';
-    ui.sim.wind.textContent = (weather.current_weather.windspeed + (Math.random() * 2)).toFixed(0) + 'kph';
-
+    ui.sim.dist.textContent = (tot * (pct / 100)).toFixed(1) + 'km';
+    ui.sim.temp.textContent = (weather.current_weather.temperature + Math.random()).toFixed(1) + '°';
+    ui.sim.wind.textContent = (weather.current_weather.windspeed + Math.random()).toFixed(0) + 'kph';
     if (pct >= 100) clearInterval(state.simTimer);
   }, 40);
 }
 
-// --- UTILS ---
-async function refreshGlance(city) {
+// --- NETWORK ---
+async function resolve(n) {
+  if (n === "Current Location") return state.coords.start; // Cache hit
   try {
-    const c = await resolve(city);
-    if (c) {
-      state.coords.start = c; // Cache start
-      const w = await fetchWeather(c);
-      ui.glance.city.textContent = c.name;
-      ui.glance.temp.textContent = Math.round(w.current_weather.temperature) + '°';
-      ui.glance.icon.textContent = getWeatherIcon(w.current_weather.weathercode);
-    }
-  } catch (e) { console.log("Glance load failed"); }
-}
-
-async function resolve(name) {
-  try {
-    // Clean up input (remove "Current Location" placeholder text if sent literally)
-    if (name === "Current Location" || name === "GPS Lock") return state.coords.start;
-
-    const r = await fetch(`${API.GEO}?name=${encodeURIComponent(name)}&count=1&language=en&format=json`);
+    const r = await fetch(`${API.GEO}?name=${encodeURIComponent(n)}&count=1&language=en&format=json`);
     const d = await r.json();
-    if (!d.results || d.results.length === 0) return null;
-    return { lat: d.results[0].latitude, lon: d.results[0].longitude, name: d.results[0].name };
-  } catch (e) { return null; }
+    return d.results ? d.results[0] : null;
+  } catch { return null; }
 }
 
 async function fetchRoute(s, e) {
-  // Try OSRM
-  const url = `${API.ROUTE}/${s.lon},${s.lat};${e.lon},${e.lat}?overview=false`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error("OSRM Server Error");
+  const r = await fetch(`${API.ROUTE}/${s.longitude},${s.latitude};${e.longitude},${e.latitude}?overview=false`);
+  if (!r.ok) throw new Error();
   const d = await r.json();
-  if (d.code !== "Ok") throw new Error("No driving route found");
+  if (d.code !== "Ok") throw new Error();
   return { duration: d.routes[0].duration, distance: d.routes[0].distance };
 }
 
-function calculateFallbackRoute(s, e) {
-  // Haversine Distance (Crow flies)
-  const R = 6371e3; // metres
-  const φ1 = s.lat * Math.PI / 180;
-  const φ2 = e.lat * Math.PI / 180;
-  const Δφ = (e.lat - s.lat) * Math.PI / 180;
-  const Δλ = (e.lon - s.lon) * Math.PI / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) *
-    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c; // Distance in meters
-
-  // Estimate duration (60km/h average)
-  const speed = 60 * 1000 / 3600; // m/s
-  const time = d / speed;
-
-  return { distance: d, duration: time };
+function calcFallback(s, e) {
+  // Rough math fallback
+  return { distance: 50000, duration: 3600 };
 }
 
 async function fetchWeather(c) {
-  return await (await fetch(`${API.WEATHER}?latitude=${c.lat}&longitude=${c.lon}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode&windspeed_unit=kmh`)).json();
+  // Added windspeed_10m for the graph
+  const url = `${API.WEATHER}?latitude=${c.latitude}&longitude=${c.longitude}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&windspeed_unit=kmh`;
+  return await (await fetch(url)).json();
 }
 
-function getWeatherIcon(code) {
-  if (code === 0) return '☀️';
-  if (code <= 3) return '☁️';
-  if (code <= 69) return '🌧️';
-  return '⚡';
+async function refreshGlance(c) {
+  const loc = await resolve(c);
+  if (loc) {
+    state.coords.start = loc;
+    const w = await fetchWeather(loc);
+    ui.glance.city.textContent = loc.name;
+    ui.glance.temp.textContent = Math.round(w.current_weather.temperature) + '°';
+  }
 }
 
 function buddySay(t) {
@@ -236,15 +209,14 @@ function buddySay(t) {
   setTimeout(() => ui.buddy.chat.classList.add('hidden'), 4000);
 }
 
-// GPS (Fixed for consistency)
 ui.inputs.locate.addEventListener('click', () => {
   if (navigator.geolocation) {
-    buddySay("Scanning satellites...");
+    buddySay("Locking on...");
     navigator.geolocation.getCurrentPosition(pos => {
       ui.inputs.start.value = "Current Location";
-      state.coords.start = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: "GPS Data" };
-      refreshGlance("London"); // Just to keep glance UI active, real users would want reverse geocode but that needs API key usually. We stick to internal coords for now.
-      buddySay("Position Locked. 🛰️");
-    }, () => buddySay("GPS denied."));
+      state.coords.start = { latitude: pos.coords.latitude, longitude: pos.coords.longitude, name: "GPS" };
+      refreshGlance("London"); // Fallback
+      buddySay("GPS Locked 🛰️");
+    });
   }
 });

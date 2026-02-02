@@ -105,6 +105,31 @@
 
         <!-- Generated Gear -->
         <div class="gear-row" id="gearRow"></div>
+
+        <!-- 📈 MISSION TELEMETRY CHARTS -->
+        <div class="charts-area hidden" id="chartsArea">
+
+          <!-- Rain Bar Chart -->
+          <div class="chart-box">
+            <label>RAIN PROBABILITY (Next 6h)</label>
+            <div class="chart-bar-container" id="rainChart">
+              <!-- Bars injected by JS -->
+            </div>
+          </div>
+
+          <!-- Temp & Wind Line Charts -->
+          <div class="dual-charts">
+            <div class="chart-box half">
+              <label>TEMP TREND</label>
+              <svg id="tempChart" viewBox="0 0 100 40" preserveAspectRatio="none"></svg>
+            </div>
+            <div class="chart-box half">
+              <label>WIND FORCE</label>
+              <svg id="windChart" viewBox="0 0 100 40" preserveAspectRatio="none"></svg>
+            </div>
+          </div>
+
+        </div>
       </div>
 
     </div>
