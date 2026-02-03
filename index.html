@@ -22,7 +22,7 @@
       </div>
       <div class="sunglasses-overlay">🕶️</div>
     </div>
-    <div class="buddy-chat hidden" id="buddyChat">Ready to roll! 🏍️</div>
+    <div class="buddy-chat hidden" id="buddyChat">Operator Online.</div>
   </div>
 
   <!-- 📊 TOP STATS -->
@@ -34,130 +34,156 @@
     <div class="glance-icon" id="lastIcon">☁️</div>
   </div>
 
-  <!-- 🚪 MAIN DASHBOARD -->
+  <!-- 🚪 MAIN DASHBOARD (Scrollable Area) -->
   <div class="screen dashboard-screen">
+    <div class="scroll-content">
 
-    <!-- 🎛️ MISSION CONTROL CARD -->
-    <div class="glass-card mission-control">
+      <!-- 🎛️ MISSION CONTROL CARD -->
+      <div class="glass-card mission-control">
 
-      <div class="card-header">
-        <h2>PLAN MISSION</h2>
-        <div class="status-indicator online"></div>
-      </div>
-
-      <div class="activity-tabs" id="activitySelector">
-        <button class="tab-btn active" data-type="ride">🏍️ RIDE</button>
-        <button class="tab-btn" data-type="run">🏃 RUN</button>
-        <button class="tab-btn" data-type="cycle">🚴 CYCLE</button>
-      </div>
-
-      <div class="control-grid" id="plannerGrid">
-        <div class="input-box">
-          <label>START POINT</label>
-          <div class="input-row">
-            <span class="dot start"></span>
-            <input type="text" id="startLoc" value="London">
-            <button class="icon-btn" id="locateBtn">📍</button>
-          </div>
+        <div class="card-header">
+          <h2>MISSION CONTROL</h2>
+          <div class="status-indicator online"></div>
         </div>
 
-        <div class="input-box compact">
-          <label>DEPARTURE TIME</label>
-          <div class="input-row">
-            <span class="dot time"></span>
-            <input type="time" id="startTime" value="10:00">
-          </div>
+        <div class="activity-tabs" id="activitySelector">
+          <button class="tab-btn active" data-type="ride">🏍️ RIDE</button>
+          <button class="tab-btn" data-type="run">🏃 RUN</button>
+          <button class="tab-btn" data-type="cycle">🚴 CYCLE</button>
         </div>
 
-        <div class="input-box">
-          <label>DESTINATION</label>
-          <div class="input-row">
-            <span class="dot end"></span>
-            <input type="text" id="endLoc" placeholder="Enter Destination...">
-          </div>
-        </div>
-
-        <div class="route-u-line"></div>
-      </div>
-
-      <!-- 🕒 GENERATED RIDE TIMELINE -->
-      <div class="ride-timeline hidden" id="rideTimeline"></div>
-
-      <button class="launch-btn" id="goBtn">
-        ANALYZE CONDITIONS
-      </button>
-
-      <!-- 💡 INSIGHTS -->
-      <div class="insight-panel hidden" id="insightPanel">
-        <div class="insight-header">
-          <span class="i-icon">🤖</span>
-          <span class="i-title">MISSION BRIEFING</span>
-        </div>
-        <p class="i-text" id="missionText">Analyzing...</p>
-
-        <div class="gear-row" id="gearRow"></div>
-
-        <!-- TELEMETRY CHARTS -->
-        <div class="charts-area hidden" id="chartsArea">
-          <div class="chart-box">
-            <label>RAIN PROBABILITY (Next 6h)</label>
-            <div class="chart-bar-container" id="rainChart"></div>
-          </div>
-          <div class="dual-charts">
-            <div class="chart-box half">
-              <label>TEMP TREND (°C)</label>
-              <!-- Defined Height container injected by JS or CSS -->
-              <div id="tempChart"></div>
-            </div>
-            <div class="chart-box half">
-              <label>WIND FORCE (kph)</label>
-              <div id="windChart"></div>
+        <div class="control-grid" id="plannerGrid">
+          <div class="input-box">
+            <label>START POINT</label>
+            <div class="input-row">
+              <span class="dot start"></span>
+              <input type="text" id="startLoc" value="London">
+              <button class="icon-btn" id="locateBtn">📍</button>
             </div>
           </div>
+
+          <div class="input-box compact">
+            <label>ETD (DEPARTURE)</label>
+            <div class="input-row">
+              <span class="dot time"></span>
+              <input type="time" id="startTime" value="10:00">
+            </div>
+          </div>
+
+          <div class="input-box">
+            <label>TARGET LOCATION</label>
+            <div class="input-row">
+              <span class="dot end"></span>
+              <input type="text" id="endLoc" placeholder="Enter Destination...">
+            </div>
+          </div>
+
+          <div class="route-u-line"></div>
         </div>
+
+        <button class="launch-btn" id="goBtn">
+          INITIATE SCAN
+        </button>
+
+      </div> <!-- End Mission Card -->
+
+      <!-- 🗂️ COMMAND DECK (Tab Views) -->
+      <div class="command-deck hidden" id="commandDeck">
+
+        <!-- VIEW 1: STATUS (Current) -->
+        <div class="deck-view active" id="viewStatus">
+          <div class="section-title">CURRENT STATUS</div>
+          <div class="brief-stats">
+            <div class="b-stat"><span class="b-val" id="briefTemp">--°</span><span class="b-lbl">HEAT LEVEL</span></div>
+            <div class="b-stat"><span class="b-val" id="briefWind">--</span><span class="b-lbl">WIND IMPACT</span></div>
+            <div class="b-stat"><span class="b-val" id="briefRain">--%</span><span class="b-lbl">RAIN ACTIVITY</span>
+            </div>
+          </div>
+          <div class="gear-row" id="gearRow"></div>
+        </div>
+
+        <!-- VIEW 2: NEXT HOURS (Timeline + Charts) -->
+        <div class="deck-view hidden" id="viewNext">
+          <div class="section-title">NEXT HOURS (SECTORS)</div>
+          <div id="rideTimeline" class="ride-timeline"></div>
+          <div class="charts-area" id="chartsArea">
+            <div class="chart-box"><label>RAIN RISK</label>
+              <div class="chart-bar-container" id="rainChart"></div>
+            </div>
+            <div class="dual-charts">
+              <div class="chart-box half"><label>TEMP TREND</label>
+                <div id="tempChart"></div>
+              </div>
+              <div class="chart-box half"><label>WIND FORCE</label>
+                <div id="windChart"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: OUTLOOK (Daily) -->
+        <div class="deck-view hidden" id="viewOutlook">
+          <div class="section-title">DAILY OUTLOOK (7-DAY)</div>
+          <div class="daily-grid" id="dailyGrid">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+        <!-- VIEW 4: RISKS (Alerts) -->
+        <div class="deck-view hidden" id="viewRisks">
+          <div class="section-title">OPERATIONAL RISKS</div>
+          <div class="risk-list" id="riskList">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
       </div>
+
+      <!-- Spacer for bottom nav -->
+      <div style="height: 100px;"></div>
 
     </div>
   </div>
 
-  <!-- 📽️ INTERACTIVE SIMULATION -->
+  <!-- ⚓ BOTTOM COMMAND DOCK -->
+  <nav class="bottom-dock">
+    <button class="dock-btn active" data-view="viewStatus">
+      <span class="d-icon">🟢</span>
+      <span class="d-lbl">STATUS</span>
+    </button>
+    <button class="dock-btn" data-view="viewNext">
+      <span class="d-icon">⏱️</span>
+      <span class="d-lbl">NEXT</span>
+    </button>
+    <button class="dock-btn" data-view="viewOutlook">
+      <span class="d-icon">📅</span>
+      <span class="d-lbl">DAILY</span>
+    </button>
+    <button class="dock-btn" data-view="viewRisks">
+      <span class="d-icon">🚨</span>
+      <span class="d-lbl">RISKS</span>
+    </button>
+  </nav>
+
+  <!-- 📽️ SIMULATION OVERLAY -->
   <div class="sim-overlay hidden" id="simOverlay">
     <div class="sim-content">
       <div class="sim-header">
         <h2 id="simRouteTitle">SIMULATION</h2>
         <button id="closeSim">✕</button>
       </div>
-
-      <!-- Manual Slider Track -->
       <div class="track-area">
         <input type="range" id="simSlider" min="0" max="100" value="0" class="sim-slider">
-        <!-- Rider icon moves via JS along value -->
         <div class="track-rider" id="trackRider">🏍️</div>
       </div>
-
-      <!-- Live Stats Grid -->
       <div class="live-telemetry">
         <div class="telemetry-grid">
-          <div class="tm-item">
-            <span class="tm-label">CLOCK</span>
-            <span class="tm-val" id="simTime">--:--</span>
-          </div>
-          <div class="tm-item">
-            <span class="tm-label">DIST</span>
-            <span class="tm-val" id="simDist">0km</span>
-          </div>
-          <div class="tm-item">
-            <span class="tm-label">TEMP</span>
-            <span class="tm-val" id="simTemp">--<small>°C</small></span>
-          </div>
-          <div class="tm-item">
-            <span class="tm-label">WIND</span>
-            <span class="tm-val" id="simWind">--<small>kph</small></span>
-          </div>
+          <div class="tm-item"><span class="tm-label">CLOCK</span><span class="tm-val" id="simTime">--:--</span></div>
+          <div class="tm-item"><span class="tm-label">DIST</span><span class="tm-val" id="simDist">0km</span></div>
+          <div class="tm-item"><span class="tm-label">HEAT Lvl</span><span class="tm-val" id="simTemp">--</span></div>
+          <div class="tm-item"><span class="tm-label">WIND Imp</span><span class="tm-val" id="simWind">--</span></div>
         </div>
       </div>
-
-      <p class="sim-hint">Drag slider to scrub route 👆</p>
     </div>
   </div>
 
