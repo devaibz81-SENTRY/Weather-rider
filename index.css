@@ -929,3 +929,44 @@ body.light-mode .glass-card {
 .r-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.4; }
 
 
+
+/* ---  CLEAR BAR CHARTS (Temp/Wind) --- */
+.bar-chart-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 100%; /* Fills the 80px box */
+  padding-top: 15px; /* Space for labels */
+}
+
+.b-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+.b-val {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.b-visual {
+  width: 60%;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s;
+  min-height: 4px;
+  opacity: 0.8;
+}
+
+/* Specific gradients */
+.b-visual.temp { background: linear-gradient(to top, #ff9d00, #ff5e00); }
+.b-visual.temp.cold { background: linear-gradient(to top, #00d2ff, #3a7bd5); }
+.b-visual.wind { background: linear-gradient(to top, #00ff9d, #00b8ff); }
+.b-visual.wind.high { background: linear-gradient(to top, #ffcd00, #ff4d4d); }
+

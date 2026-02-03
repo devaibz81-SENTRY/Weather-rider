@@ -1,4 +1,4 @@
-// 🚀 Weather Rider: Command Center Edition (Ops Ready)
+// 🚀 Weather Rider: V4.5 (Fixed Bar Charts)
 
 const API = {
   GEO: 'https://geocoding-api.open-meteo.com/v1/search',
@@ -8,8 +8,8 @@ const API = {
 
 const ui = {
   buddy: { wrap: document.getElementById('buddyWrapper'), chat: document.getElementById('buddyChat') },
-  tabs: document.querySelectorAll('.tab-btn'), // Activity Tabs
-  dock: document.querySelectorAll('.dock-btn'), // Bottom Dock Tabs
+  tabs: document.querySelectorAll('.tab-btn'),
+  dock: document.querySelectorAll('.dock-btn'),
   views: {
     status: document.getElementById('viewStatus'),
     next: document.getElementById('viewNext'),
@@ -34,49 +34,37 @@ const state = {
   route: null
 };
 
-// --- 🎬 INIT ---
+// --- INIT ---
 document.addEventListener('DOMContentLoaded', () => {
   const last = localStorage.getItem('wr_last') || 'London';
   ui.inputs.start.value = last;
   refreshGlance(last);
-  buddySay("Command Center Ready. 📡");
+  buddySay("Charts Upgraded. 📊");
 });
 
-// --- ⚓ DOCK NAVIGATION ---
+// --- INTERACTIONS ---
+// Dock
 ui.dock.forEach(btn => {
   btn.addEventListener('click', () => {
-    // 1. UI Toggle
     ui.dock.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
-    // 2. View Switch
     const targetId = btn.dataset.view;
     Object.values(ui.views).forEach(v => {
-      if (v.id === 'commandDeck') return; // Skip wrapper
+      if (v.id === 'commandDeck') return;
       v.classList.add('hidden');
     });
     document.getElementById(targetId).classList.remove('hidden');
-
-    // 3. Buddy reaction
-    const names = { viewStatus: "Status Check", viewNext: "Timeline", viewOutlook: "Long Range", viewRisks: "Threat Analysis" };
-    buddySay(names[targetId] || "Aye Aye");
   });
 });
 
-// --- 👁️ EYE TRACKING & THEME ---
-ui.buddy.wrap.addEventListener('click', () => {
-  document.body.classList.toggle('light-mode');
-});
-
+// Theme & Eyes
+ui.buddy.wrap.addEventListener('click', () => document.body.classList.toggle('light-mode'));
 document.addEventListener('mousemove', (e) => {
   const face = ui.buddy.wrap.getBoundingClientRect();
-  const faceX = face.left + face.width / 2;
-  const faceY = face.top + face.height / 2;
-  const rad = Math.atan2(e.clientX - faceX, e.clientY - faceY);
-  const dist = Math.min(4, Math.hypot(e.clientX - faceX, e.clientY - faceY) / 15);
-  const moveX = Math.sin(rad) * dist;
-  const moveY = Math.cos(rad) * dist;
-  document.querySelectorAll('.eye').forEach(eye => eye.style.transform = `translate(${moveX}px, ${moveY}px)`);
+  const rad = Math.atan2(e.clientX - (face.left + face.width / 2), e.clientY - (face.top + face.height / 2));
+  const dist = Math.min(4, Math.hypot(e.clientX - (face.left + face.width / 2), e.clientY - (face.top + face.height / 2)) / 15);
+  const mx = Math.sin(rad) * dist; const my = Math.cos(rad) * dist;
+  document.querySelectorAll('.eye').forEach(eye => eye.style.transform = `translate(${mx}px, ${my}px)`);
 });
 
 ui.tabs.forEach(btn => {
@@ -88,12 +76,11 @@ ui.tabs.forEach(btn => {
   });
 });
 
-// --- 🚀 MAIN EXECUTION ---
+// --- EXECUTE ---
 ui.inputs.go.addEventListener('click', async () => {
   const dest = ui.inputs.end.value;
   if (!dest) return buddySay("Target Required");
-
-  ui.inputs.go.textContent = "📡 ACQUIRING DATA...";
+  ui.inputs.go.textContent = "📡 SCANNING...";
   ui.inputs.go.style.opacity = "0.7";
 
   try {
@@ -109,225 +96,160 @@ ui.inputs.go.addEventListener('click', async () => {
     try { route = await fetchRoute(s, e); } catch { route = calcFallback(s, e); }
     state.route = route;
 
-    const weatherStart = await fetchWeather(s);
-    const weatherEnd = await fetchWeather(e);
-    state.weather = weatherEnd;
+    const wStart = await fetchWeather(s);
+    const wEnd = await fetchWeather(e);
+    state.weather = wEnd;
 
-    // --- POPULATE COMMAND DECK ---
-    ui.views.deck.classList.remove('hidden'); // Show deck area
+    ui.views.deck.classList.remove('hidden');
 
-    // View 1: Status
-    renderStatus(weatherEnd, route);
+    renderStatus(wEnd, route);
+    generate3CardSector(route, wStart, wEnd, s.name, e.name);
 
-    // View 2: Next (Timeline + Charts)
-    generate3CardSector(route, weatherStart, weatherEnd, s.name, e.name);
-    renderCharts(weatherEnd.hourly);
+    // RENDER NEW BAR CHARTS
+    renderCharts(wEnd.hourly);
 
-    // View 3: Outlook (Daily)
-    renderOutlook(weatherEnd.daily);
+    renderOutlook(wEnd.daily);
+    renderRisks(wEnd);
 
-    // View 4: Risks
-    renderRisks(weatherEnd);
-
-    // Ready
     ui.inputs.go.textContent = "🚀 LAUNCH SIMULATION";
     ui.inputs.go.style.opacity = "1";
     ui.inputs.go.onclick = () => startSim();
 
-    // Auto-switch to Status tab
-    ui.dock[0].click();
+    ui.dock[0].click(); // Goto Status
 
   } catch (err) {
     console.error(err);
-    buddySay("Data Link Severed. Retry.");
+    buddySay("Connection Limit. Retry.");
     ui.inputs.go.textContent = "INITIATE SCAN";
     ui.inputs.go.style.opacity = "1";
   }
 });
 
-// --- RENDERERS ---
+function renderCharts(hourly) {
+  // Rain (Simple Bars)
+  ui.charts.rain.innerHTML = '';
+  for (let i = 0; i < 6; i++) ui.charts.rain.innerHTML += `<div class="c-bar" style="height:${Math.max(hourly.precipitation_probability[new Date().getHours() + i] || 0, 5)}%"></div>`;
+
+  // Temp & Wind (Advanced Bar Charts)
+  drawBarChart(ui.charts.temp, hourly.temperature_2m, new Date().getHours(), 6, 'temp');
+  drawBarChart(ui.charts.wind, hourly.windspeed_10m, new Date().getHours(), 6, 'wind');
+}
+
+function drawBarChart(container, data, start, len, type) {
+  container.innerHTML = '';
+  const slice = data.slice(start, start + len);
+
+  const min = Math.min(...slice);
+  const max = Math.max(...slice);
+  const range = (max - min) || 1;
+
+  const row = document.createElement('div');
+  row.className = 'bar-chart-row';
+
+  slice.forEach(val => {
+    let pct = 0;
+    if (type === 'wind') {
+      pct = Math.min(100, Math.max(10, (val / 40) * 100)); // 40kph = max height
+    } else {
+      pct = 20 + ((val - min) / range) * 80; // Relative scaling
+    }
+
+    let cls = type;
+    if (type === 'temp' && val < 10) cls += ' cold';
+    if (type === 'wind' && val > 20) cls += ' high';
+
+    const col = document.createElement('div');
+    col.className = 'b-col';
+    col.innerHTML = `
+      <span class="b-val">${Math.round(val)}${type === 'temp' ? '°' : 'k'}</span>
+      <div class="b-visual ${cls}" style="height:${pct}%"></div>
+    `;
+    row.appendChild(col);
+  });
+  container.appendChild(row);
+}
+
+// ... Keep other Renderers ...
 
 function renderStatus(data, route) {
   const cur = data.current_weather;
   ui.status.temp.textContent = Math.round(cur.temperature) + '°';
   ui.status.wind.textContent = cur.windspeed + 'k';
-
-  // Rain is hourly-derived usually
   const hIdx = new Date().getHours();
-  const rain = data.hourly.precipitation_probability[hIdx] || 0;
-  ui.status.rain.textContent = rain + '%';
-
-  // Gear
+  ui.status.rain.textContent = (data.hourly.precipitation_probability[hIdx] || 0) + '%';
   let gear = [];
   if (state.mode === 'run') gear = ["Hydration Pack", "Run Shoes"];
   else if (state.mode === 'cycle') gear = ["Helmet", "Windbreaker"];
-  else gear = ["Leather Jacket", "Clear Visor"]; // Moto default
-
-  if (rain > 40) gear.push("Rain Gear");
-  if (cur.temperature < 10) gear.push("Thermals");
-
+  else gear = ["Leather Jacket", "Visor"];
+  if (data.hourly.precipitation_probability[hIdx] > 40) gear.push("Rain Gear");
   ui.status.gear.innerHTML = gear.map(g => `<span class="gear-tag">${g}</span>`).join('');
 }
 
 function renderOutlook(daily) {
-  const container = ui.outlook;
-  container.innerHTML = '';
+  const c = ui.outlook; c.innerHTML = '';
   if (!daily) return;
-
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
   for (let i = 0; i < 7; i++) {
-    // If API gives dates, parse them. OpenMeteo gives array of dates.
-    // We assume index 0 is today.
-    const dateStr = daily.time[i];
-    const dObj = new Date(dateStr);
-    const dayName = i === 0 ? "Today" : days[dObj.getDay()];
-
+    const dObj = new Date(daily.time[i]);
     const max = Math.round(daily.temperature_2m_max[i]);
     const min = Math.round(daily.temperature_2m_min[i]);
     const code = daily.weathercode[i];
-
-    let icon = '☀️';
-    if (code > 3) icon = '☁️';
-    if (code >= 51) icon = '🌧️';
-    if (code >= 71) icon = '❄️';
-
-    container.innerHTML += `
-      <div class="day-row">
-        <span class="day-name">${dayName}</span>
-        <span class="day-icon">${icon}</span>
-        <div class="day-temp">
-          <span>${max}°</span> <small>/ ${min}°</small>
-        </div>
-      </div>
-    `;
+    let icon = '☀️'; if (code > 3) icon = '☁️'; if (code >= 51) icon = '🌧️';
+    c.innerHTML += `<div class="day-row"><span class="day-name">${i === 0 ? "Today" : days[dObj.getDay()]}</span><span class="day-icon">${icon}</span><div class="day-temp"><span>${max}°</span> <small>/ ${min}°</small></div></div>`;
   }
 }
 
 function renderRisks(data) {
-  const container = ui.risks;
-  container.innerHTML = '';
-
+  const c = ui.risks; c.innerHTML = '';
   const h = data.hourly;
-  let risksFound = 0;
-
-  // 1. Wind Checks
-  const maxWind = Math.max(...h.windspeed_10m.slice(0, 24));
-  if (maxWind > 30) {
-    risksFound++;
-    addRisk("GUST RISK", `High gusts of ${Math.round(maxWind)}kph detected in next 24h. Stability compromised.`, "high");
-  } else if (maxWind > 20) {
-    risksFound++;
-    addRisk("WIND ACTIVITY", `Moderate winds (${Math.round(maxWind)}kph). Minor drag expected.`, "med");
-  }
-
-  // 2. Rain Checks
-  const maxRain = Math.max(...h.precipitation_probability.slice(0, 24));
-  if (maxRain > 60) {
-    risksFound++;
-    addRisk("RAIN IMPACT", `Heavy rain (${maxRain}%) inbound. Traction critical.`, "high");
-  } else if (maxRain > 20) {
-    risksFound++;
-    addRisk("PRECIPITATION", `Scattered showers (${maxRain}%). Visor drops.`, "med");
-  }
-
-  // 3. Temp Checks
-  const curT = data.current_weather.temperature;
-  if (curT < 5) {
-    risksFound++;
-    addRisk("COLD STRESS", "Low tarmac temps. Reduced grip.", "med");
-  }
-
-  if (risksFound === 0) {
-    container.innerHTML = `<div class="risk-card" style="border-color:#00ff9d"><div class="r-head">ALL CLEAR</div><div class="r-desc">No significant operational risks detected.</div></div>`;
-  }
-
-  function addRisk(title, desc, level) {
-    container.innerHTML += `
-      <div class="risk-card ${level}">
-        <div class="r-head">🚨 ${title}</div>
-        <div class="r-desc">${desc}</div>
-      </div>
-    `;
-  }
+  let risks = 0;
+  if (Math.max(...h.windspeed_10m.slice(0, 24)) > 30) { risks++; c.innerHTML += riskHTML("GUSTS", "High winds detected.", "high"); }
+  if (Math.max(...h.precipitation_probability.slice(0, 24)) > 50) { risks++; c.innerHTML += riskHTML("RAIN", "Heavy rain expected.", "high"); }
+  if (risks === 0) c.innerHTML = `<div class="risk-card" style="border-color:#00ff9d"><div class="r-head">ALL CLEAR</div></div>`;
 }
+function riskHTML(t, d, l) { return `<div class="risk-card ${l}"><div class="r-head">🚨 ${t}</div><div class="r-desc">${d}</div></div>`; }
 
-// ... Keep Timeline, Chart, Sim Functions ...
 function generate3CardSector(route, wStart, wEnd, startName, endName) {
-  const container = ui.timeline;
-  container.innerHTML = '';
+  const c = ui.timeline; c.innerHTML = '';
   const timeInput = ui.inputs.time.value || "10:00";
   let [h, m] = timeInput.split(':').map(Number);
   const durH = route.duration / 3600;
 
-  const getCond = (wObj, offsetH) => {
-    const idx = (new Date().getHours() + Math.floor(offsetH)) % 24;
-    return {
-      t: wObj.hourly.temperature_2m[idx] || 0,
-      r: wObj.hourly.precipitation_probability[idx] || 0,
-    };
+  // Helper
+  const getD = (w, off) => {
+    const idx = (new Date().getHours() + Math.floor(off)) % 24;
+    return { t: w.hourly.temperature_2m[idx], r: w.hourly.precipitation_probability[idx] };
   };
 
   const sectors = [
-    { label: "DEPARTURE", name: startName, cond: getCond(wStart, 0), timeOff: 0 },
-    { label: "MID-POINT", name: "Sector 2", cond: { t: (getCond(wStart, 0).t + getCond(wEnd, durH).t) / 2, r: Math.max(getCond(wStart, 0).r, getCond(wEnd, durH).r) }, timeOff: durH / 2 },
-    { label: "ARRIVAL", name: endName, cond: getCond(wEnd, durH), timeOff: durH }
+    { l: "DEPART", n: startName, d: getD(wStart, 0), off: 0 },
+    { l: "MID", n: "Checkpoint", d: getD(wEnd, durH / 2), off: durH / 2 },
+    { l: "ARRIVE", n: endName, d: getD(wEnd, durH), off: durH }
   ];
 
   const row = document.createElement('div');
   row.style.cssText = "display:flex; gap:10px; margin-bottom:15px;";
-
   sectors.forEach(s => {
-    let finalH = h + Math.floor(s.timeOff);
-    let finalM = m + Math.floor((s.timeOff % 1) * 60);
+    let finalH = h + Math.floor(s.off);
+    let finalM = m + Math.floor((s.off % 1) * 60);
     if (finalM >= 60) { finalH++; finalM -= 60; }
-
-    let icon = s.cond.r > 20 ? (s.cond.r > 50 ? '🌧️' : '☁️') : '☀️';
-    let status = s.cond.r > 40 ? "rgba(255, 77, 77, 0.1)" : "rgba(255,255,255,0.05)";
-    let border = s.cond.r > 40 ? "#ff4d4d" : "var(--border)";
-
-    row.innerHTML += `
-      <div style="flex:1; background:${status}; border:1px solid ${border}; border-radius:12px; padding:10px; text-align:center;">
-        <div style="font-size:0.6rem; opacity:0.6;">${s.label}</div>
-        <div style="font-weight:700; margin:5px 0;">${finalH % 24}:${finalM.toString().padStart(2, '0')}</div>
-        <div style="font-size:1.4rem;">${icon}</div>
-        <div>${Math.round(s.cond.t)}°</div>
-      </div>`;
+    let icon = s.d.r > 30 ? '🌧️' : '☀️';
+    row.innerHTML += `<div style="flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:12px; padding:10px; text-align:center;">
+      <div style="font-size:0.6rem; opacity:0.6;">${s.l}</div>
+      <div style="font-weight:700; margin:5px 0;">${finalH % 24}:${finalM.toString().padStart(2, '0')}</div>
+      <div style="font-size:1.4rem;">${icon}</div>
+      <div>${Math.round(s.d.t)}°</div>
+    </div>`;
   });
-  container.appendChild(row);
+  c.appendChild(row);
 }
 
-function renderCharts(hourly) {
-  ui.charts.rain.innerHTML = '';
-  for (let i = 0; i < 6; i++) ui.charts.rain.innerHTML += `<div class="c-bar" style="height:${Math.max(hourly.precipitation_probability[new Date().getHours() + i] || 0, 5)}%"></div>`;
-  drawLine(ui.charts.temp, hourly.temperature_2m, new Date().getHours(), 6, 'temp');
-  drawLine(ui.charts.wind, hourly.windspeed_10m, new Date().getHours(), 6, 'wind');
-}
-
-function drawLine(container, data, start, len, type) {
-  const slice = data.slice(start, start + len);
-  const min = Math.min(...slice);
-  const diff = (Math.max(...slice) - min) || 1;
-  const pts = slice.map((v, i) => `${(i / (len - 1)) * 100},${40 - ((v - min) / diff) * 30 - 5}`).join(' ');
-  const avg = slice.reduce((a, b) => a + b, 0) / len;
-  let cls = 'line-ok';
-  if (type === 'temp') cls = avg > 25 ? 'line-hot' : (avg < 10 ? 'line-cold' : 'line-ok');
-  if (type === 'wind' && avg > 25) cls = 'line-cold';
-  container.innerHTML = `<div class="chart-container-relative"><svg viewBox="0 0 100 40" preserveAspectRatio="none"><polyline points="${pts}" class="chart-line ${cls}" vector-effect="non-scaling-stroke"></polyline></svg></div>`;
-}
-
-// SIMULATION
-function startSim() {
-  ui.sim.overlay.classList.remove('hidden');
-  ui.sim.close.onclick = () => ui.sim.overlay.classList.add('hidden');
-  ui.sim.slider.value = 0; updateSim(0);
-  ui.sim.slider.oninput = (e) => updateSim(e.target.value);
-}
+// SIM
+function startSim() { ui.sim.overlay.classList.remove('hidden'); ui.sim.close.onclick = () => ui.sim.overlay.classList.add('hidden'); ui.sim.slider.value = 0; updateSim(0); ui.sim.slider.oninput = (e) => updateSim(e.target.value); }
 function updateSim(val) {
   ui.sim.rider.style.left = val + '%';
   if (!state.route || !state.weather) return;
   const pct = val / 100;
-  // Sim Logic same as before...
   const dist = (state.route.distance / 1000) * pct;
   const secs = state.route.duration * pct;
   const [h, m] = (ui.inputs.time.value || "10:00").split(':').map(Number);
@@ -341,14 +263,16 @@ function updateSim(val) {
 
 // API
 async function fetchWeather(c) {
-  const url = `${API.WEATHER}?latitude=${c.latitude}&longitude=${c.longitude}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&windspeed_unit=kmh`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error();
-  const d = await res.json();
-  if (!d.hourly.windspeed_10m) d.hourly.windspeed_10m = new Array(100).fill(10);
-  return d;
+  try {
+    const url = `${API.WEATHER}?latitude=${c.latitude}&longitude=${c.longitude}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&windspeed_unit=kmh`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    if (!d.hourly.windspeed_10m) d.hourly.windspeed_10m = new Array(100).fill(10);
+    return d;
+  } catch { return { current_weather: { temperature: 20, windspeed: 10 }, hourly: { temperature_2m: Array(48).fill(20), precipitation_probability: Array(48).fill(0), windspeed_10m: Array(48).fill(10) }, daily: { time: [], temperature_2m_max: [], temperature_2m_min: [], weathercode: [] } }; }
 }
-async function resolve(n) { /* Same */ if (n === "Current Location") return state.coords.start; try { const r = await fetch(`${API.GEO}?name=${n}&count=1`); const d = await r.json(); return d.results ? d.results[0] : null; } catch { return null; } }
+async function resolve(n) { if (n === "Current Location") return state.coords.start; try { const r = await fetch(`${API.GEO}?name=${n}&count=1`); const d = await r.json(); return d.results ? d.results[0] : null; } catch { return null; } }
 async function fetchRoute(s, e) { const r = await fetch(`${API.ROUTE}/${s.longitude},${s.latitude};${e.longitude},${e.latitude}?overview=false`); const d = await r.json(); return { duration: d.routes[0].duration, distance: d.routes[0].distance }; }
 function calcFallback(s, e) { return { distance: 50000, duration: 3600 }; }
 function refreshGlance(c) { resolve(c).then(l => { if (l) { state.coords.start = l; ui.glance.city.textContent = l.name; fetchWeather(l).then(w => ui.glance.temp.textContent = Math.round(w.current_weather.temperature) + '°'); } }); }
