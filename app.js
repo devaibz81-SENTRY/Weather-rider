@@ -1,4 +1,4 @@
-// 🚀 Weather Rider: Timeline Edition
+// 🚀 Weather Rider: Final Polish (Fixed Eye Tracking)
 
 const API = {
   GEO: 'https://geocoding-api.open-meteo.com/v1/search',
@@ -20,34 +20,49 @@ const ui = {
 const state = {
   mode: 'ride',
   coords: { start: null, end: null },
-  weather: null,
+  weather: null, // Stores full destination forecast
   simTimer: null
 };
 
+// --- 🎬 INIT ---
 document.addEventListener('DOMContentLoaded', () => {
   const last = localStorage.getItem('wr_last') || 'London';
   ui.inputs.start.value = last;
   refreshGlance(last);
-  buddySay("Timeline Logic Online. 🕒");
+  buddySay("Systems Online. 👁️");
 });
 
 // --- INTERACTIONS ---
+// 1. Buddy Click (Theme)
 ui.buddy.wrap.addEventListener('click', () => {
   document.body.classList.toggle('light-mode');
   buddySay(document.body.classList.contains('light-mode') ? "Light Mode ☀️" : "Dark Mode 🌙");
 });
 
+// 2. Buddy Eyes (Fixed Tracking Logic)
 document.addEventListener('mousemove', (e) => {
-  document.querySelectorAll('.eye').forEach(eye => {
+  const eyes = document.querySelectorAll('.eye');
+  eyes.forEach(eye => {
+    // Get center of eye
     const rect = eye.getBoundingClientRect();
-    const x = (rect.left) + (rect.width / 2);
-    const y = (rect.top) + (rect.height / 2);
-    const rad = Math.atan2(e.pageX - x, e.pageY - y);
-    const rot = (rad * (180 / Math.PI) * -1) + 180;
-    eye.style.transform = `rotate(${rot}deg)`;
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+
+    // Calculate angle to mouse
+    const rad = Math.atan2(e.clientX - x, e.clientY - y);
+
+    // Limit movement radius (max 3px)
+    const dist = Math.min(3, Math.hypot(e.clientX - x, e.clientY - y) / 10);
+
+    // Move eye (Pupil) in that direction
+    const moveX = Math.sin(rad) * dist;
+    const moveY = Math.cos(rad) * dist;
+
+    eye.style.transform = `translate(${moveX}px, ${moveY}px)`;
   });
 });
 
+// 3. Tab Switch
 ui.tabs.forEach(btn => {
   btn.addEventListener('click', () => {
     ui.tabs.forEach(b => b.classList.remove('active'));
@@ -58,6 +73,7 @@ ui.tabs.forEach(btn => {
   });
 });
 
+// 4. Analyze / Launch
 ui.inputs.go.addEventListener('click', async () => {
   const dest = ui.inputs.end.value;
   if (!dest) return buddySay("Target Required! 🎯");
@@ -75,19 +91,18 @@ ui.inputs.go.addEventListener('click', async () => {
     state.coords.end = e;
     localStorage.setItem('wr_last', s.name);
 
+    // Fetch Route & Weather
     let route;
     try { route = await fetchRoute(s, e); } catch { route = calcFallback(s, e); }
-
     const weather = await fetchWeather(e);
     state.weather = weather;
 
-    // RENDER
-    generateBriefing(weather, route);
-    renderCharts(weather.hourly);
+    // RENDER: Briefing + Charts + Timeline
+    generateBriefing(weather, route); // Top stats inside card
+    renderCharts(weather.hourly);     // Graphs
+    generateRideTimeline(route, weather, s.name, e.name); // Vertical List
 
-    // NEW: Generate Timeline
-    generateRideTimeline(route, weather, s.name, e.name);
-
+    // Switch to Sim Mode
     ui.inputs.go.textContent = "🚀 LAUNCH SIMULATION";
     ui.inputs.go.style.opacity = "1";
     ui.inputs.go.onclick = () => startSim(route, weather);
@@ -99,6 +114,8 @@ ui.inputs.go.addEventListener('click', async () => {
     ui.inputs.go.style.opacity = "1";
   }
 });
+
+// --- 🧠 LOGIC ---
 
 function generateBriefing(data, route) {
   ui.insight.panel.classList.remove('hidden');
@@ -124,11 +141,11 @@ function generateBriefing(data, route) {
     gear = ["Jacket 🧥", "Visor 🧽"];
   }
 
-  ui.insight.text.textContent = `Dist: ${Math.round(route.distance / 1000)}km. ${advice}`;
+  const dist = Math.round(route.distance / 1000);
+  ui.insight.text.textContent = `Trip: ${dist}km. ${advice}`;
   ui.insight.gear.innerHTML = gear.map(g => `<span class="gear-tag">${g}</span>`).join('');
 }
 
-// --- 🕒 TIMELINE ENGINE (NEW) ---
 function generateRideTimeline(route, weather, startName, endName) {
   const container = ui.timeline;
   if (!container) return;
@@ -136,47 +153,39 @@ function generateRideTimeline(route, weather, startName, endName) {
   container.innerHTML = '';
   container.classList.remove('hidden');
 
-  // Parse Start Time
-  const timeInput = ui.inputs.time.value || "10:00"; // Get value from input
+  const timeInput = ui.inputs.time.value || "10:00";
   let [hours, mins] = timeInput.split(':').map(Number);
-
-  // Duration in hours
   const durHours = route.duration / 3600;
 
   const nodes = [
     { label: `Depart ${startName}`, offset: 0 },
-    { label: "Mid-Sector Check", offset: durHours / 2 },
+    { label: "Check Point", offset: durHours / 2 },
     { label: `Arrive ${endName}`, offset: durHours }
   ];
 
-  const w = weather.hourly;
-  // Offset logic: simple relative lookahead from 'now' for demo
-  // In prod, use real timestamps from API
-
-  nodes.forEach((node, i) => {
+  // Render Nodes
+  nodes.forEach(node => {
     let nodeH = hours + Math.floor(node.offset);
     let nodeM = mins + Math.floor((node.offset % 1) * 60);
     if (nodeM >= 60) { nodeH++; nodeM -= 60; }
     const timeStr = `${nodeH % 24}:${nodeM.toString().padStart(2, '0')}`;
 
-    // Look ahead in API data (approx)
+    // Look ahead logic
     const apiIdx = new Date().getHours() + Math.floor(node.offset);
-    const temp = w.temperature_2m[apiIdx] || "--";
-    const code = w.weathercode[apiIdx] || 0;
+    const w = weather.hourly;
+    const temp = w.temperature_2m[apiIdx] || "-";
     const rain = w.precipitation_probability[apiIdx] || 0;
     const wind = w.windspeed_10m[apiIdx] || 0;
 
-    // Icon
     let icon = '☀️';
-    if (code > 3) icon = '☁️';
-    if (code > 50) icon = '🌧️';
+    if (rain > 50) icon = '🌧️';
+    else if (rain > 20) icon = '☁️';
 
-    // Danger Check
-    let statusClass = "good";
-    if (rain > 30 || wind > 25) statusClass = "danger";
+    let status = "good";
+    if (rain > 40 || wind > 30) status = "danger";
 
     const div = document.createElement('div');
-    div.className = `timeline-node ${statusClass}`;
+    div.className = `timeline-node ${status}`;
     div.innerHTML = `
       <span class="t-time">${timeStr}</span>
       <div class="t-cond" style="flex:1; margin-left:15px">
@@ -192,22 +201,23 @@ function generateRideTimeline(route, weather, startName, endName) {
   });
 }
 
-// --- 📊 CHART ENGINE ---
 function renderCharts(hourly) {
   ui.charts.area.classList.remove('hidden');
   const now = new Date().getHours();
   const range = 6;
 
+  // Rain
   ui.charts.rain.innerHTML = '';
   for (let i = 0; i < range; i++) {
     const val = hourly.precipitation_probability[now + i] || 0;
     const bar = document.createElement('div');
     bar.className = 'c-bar';
     bar.style.height = `${Math.max(val, 5)}%`;
-    bar.title = `+${i}h: ${val}% Rain`;
+    bar.title = `+${i}h: ${val}%`;
     ui.charts.rain.appendChild(bar);
   }
 
+  // Interactive Lines (Temp/Wind)
   drawInteractiveLine(ui.charts.temp, hourly.temperature_2m, now, range, 'temp');
   drawInteractiveLine(ui.charts.wind, hourly.windspeed_10m, now, range, 'wind');
 }
@@ -275,7 +285,7 @@ function startSim(route, weather) {
   }, 40);
 }
 
-// --- NETWORK (Safe) ---
+// --- NETWORK ---
 async function resolve(n) {
   if (n === "Current Location") return state.coords.start;
   try {
@@ -296,7 +306,8 @@ async function fetchRoute(s, e) {
 function calcFallback(s, e) { return { distance: 50000, duration: 3600 }; }
 
 async function fetchWeather(c) {
-  return await (await fetch(`${API.WEATHER}?latitude=${c.latitude}&longitude=${c.longitude}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&windspeed_unit=kmh`)).json();
+  const url = `${API.WEATHER}?latitude=${c.latitude}&longitude=${c.longitude}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&windspeed_unit=kmh`;
+  return await (await fetch(url)).json();
 }
 
 async function refreshGlance(c) {

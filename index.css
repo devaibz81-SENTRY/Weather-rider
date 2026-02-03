@@ -678,3 +678,35 @@ body.light-mode .glass-card {
 .timeline-node.good { border-color: #00ff9d; }
 
 
+
+/* ---  NATURAL EYE MOVEMENT FIX --- */
+.eyes-container {
+  /* Center on face */
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px; height: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eye {
+  width: 10px; height: 10px;
+  background: #222;
+  border-radius: 50%;
+  position: relative;
+  /* Remove rotation transition if any */
+  transition: transform 0.1s ease-out;
+}
+
+/* The Shine (Reflection) - Fixed relative to pupil */
+.eye::after {
+  content: '';
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 3px; height: 3px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
