@@ -526,3 +526,103 @@ svg {
 .line-temp { stroke: #ff9d00; filter: drop-shadow(0 0 4px rgba(255, 157, 0, 0.5)); }
 .line-wind { stroke: #00f2ff; filter: drop-shadow(0 0 4px rgba(0, 242, 255, 0.5)); }
 
+
+/* ---  LIGHT MODE THEME --- */
+body.light-mode {
+  --bg-deep: #f0f9ff;
+  --text-main: #1e293b;
+  --text-dim: #64748b;
+  --panel-bg: rgba(255, 255, 255, 0.6);
+  --border: rgba(0, 0, 0, 0.1);
+  --accent: #0284c7; /* Darker blue for contrast */
+}
+
+body.light-mode .bg-layer {
+  background: linear-gradient(135deg, #e0f2fe 0%, #fff 100%);
+}
+
+body.light-mode .sun-body {
+  box-shadow: 0 0 50px rgba(255, 170, 0, 0.8);
+}
+
+body.light-mode .glass-card {
+  box-shadow: 0 20px 60px rgba(0, 100, 255, 0.15);
+}
+
+/* ---  BUDDY EYES ONLY --- */
+.sunglasses-overlay { display: none; } /* Remove shades */
+
+.eyes-container {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 20px;
+}
+
+.eye {
+  width: 12px; height: 12px;
+  background: #000;
+  border-radius: 50%;
+  position: relative;
+}
+
+/* Cute blink animation */
+.eye::after {
+  content: ''; display: block; width: 4px; height: 4px; 
+  background: #fff; border-radius: 50%; 
+  position: absolute; top: 2px; right: 2px;
+}
+
+/* ---  INTERACTIVE CHARTS --- */
+.chart-container-relative {
+  position: relative;
+  height: 60px;
+}
+
+.chart-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex;
+  z-index: 10;
+}
+
+.chart-trigger {
+  flex: 1;
+  /* border: 1px solid rgba(255,255,255,0.1); Debugging */
+  cursor: crosshair;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: -30px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.chart-trigger:hover + .chart-tooltip,
+.chart-trigger:active + .chart-tooltip {
+  opacity: 1;
+}
+
+/* Line Colors */
+.line-hot { stroke: #ff4d4d; filter: drop-shadow(0 0 4px rgba(255, 77, 77, 0.5)); }
+.line-cold { stroke: #00d2ff; filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.5)); }
+.line-ok { stroke: #00ff9d; }
+
+.chart-icon-overlay {
+  position: absolute;
+  top: 5px; right: 5px;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
