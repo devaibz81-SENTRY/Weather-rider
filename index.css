@@ -710,3 +710,95 @@ body.light-mode .glass-card {
   opacity: 0.8;
 }
 
+
+/* ---  SLIDER & TELEMETRY --- */
+.track-area {
+  position: relative;
+  margin: 40px 0;
+  height: 40px; /* Area for icon above slider */
+  display: flex;
+  align-items: center;
+}
+
+.sim-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.sim-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 15px var(--accent);
+  cursor: grab;
+  margin-top: -9px; /* center on track */
+  border: 2px solid #fff;
+}
+
+.track-rider {
+  position: absolute;
+  top: -20px;
+  left: 0; /* JS updates this */
+  font-size: 2rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: left 0.1s linear;
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tm-item {
+  background: rgba(255,255,255,0.05);
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.tm-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+  letter-spacing: 1px;
+}
+
+.tm-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.tm-val small { font-size: 0.7rem; opacity: 0.7; margin-left: 2px; }
+
+.sim-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 20px;
+  opacity: 0.5;
+}
+
+/* ---  FIXED CHART HEIGHT --- */
+.chart-container-relative, svg {
+  height: 80px !important; /* Defined height as requested */
+}
+
+
+/* ---  FLUID EYE MOTION --- */
+.eye {
+  /* Smooth physics-based interpolation */
+  transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+

@@ -45,17 +45,13 @@
         <div class="status-indicator online"></div>
       </div>
 
-      <!-- Activity Selector -->
       <div class="activity-tabs" id="activitySelector">
         <button class="tab-btn active" data-type="ride">🏍️ RIDE</button>
         <button class="tab-btn" data-type="run">🏃 RUN</button>
         <button class="tab-btn" data-type="cycle">🚴 CYCLE</button>
       </div>
 
-      <!-- Inputs: The Ride Timeline Input Flow -->
       <div class="control-grid" id="plannerGrid">
-
-        <!-- Start Point -->
         <div class="input-box">
           <label>START POINT</label>
           <div class="input-row">
@@ -65,7 +61,6 @@
           </div>
         </div>
 
-        <!-- Time Picker (New) -->
         <div class="input-box compact">
           <label>DEPARTURE TIME</label>
           <div class="input-row">
@@ -74,7 +69,6 @@
           </div>
         </div>
 
-        <!-- Destination -->
         <div class="input-box">
           <label>DESTINATION</label>
           <div class="input-row">
@@ -86,12 +80,9 @@
         <div class="route-u-line"></div>
       </div>
 
-      <!-- 🕒 GENERATED RIDE TIMELINE (Dynamic Encounters) -->
-      <div class="ride-timeline hidden" id="rideTimeline">
-        <!-- JS will inject weather encounters here -->
-      </div>
+      <!-- 🕒 GENERATED RIDE TIMELINE -->
+      <div class="ride-timeline hidden" id="rideTimeline"></div>
 
-      <!-- Action Button -->
       <button class="launch-btn" id="goBtn">
         ANALYZE CONDITIONS
       </button>
@@ -109,17 +100,18 @@
         <!-- TELEMETRY CHARTS -->
         <div class="charts-area hidden" id="chartsArea">
           <div class="chart-box">
-            <label>RAIN PROBABILITY</label>
+            <label>RAIN PROBABILITY (Next 6h)</label>
             <div class="chart-bar-container" id="rainChart"></div>
           </div>
           <div class="dual-charts">
             <div class="chart-box half">
-              <label>TEMP</label>
-              <svg id="tempChart" viewBox="0 0 100 40" preserveAspectRatio="none"></svg>
+              <label>TEMP TREND (°C)</label>
+              <!-- Defined Height container injected by JS or CSS -->
+              <div id="tempChart"></div>
             </div>
             <div class="chart-box half">
-              <label>WIND</label>
-              <svg id="windChart" viewBox="0 0 100 40" preserveAspectRatio="none"></svg>
+              <label>WIND FORCE (kph)</label>
+              <div id="windChart"></div>
             </div>
           </div>
         </div>
@@ -128,22 +120,44 @@
     </div>
   </div>
 
-  <!-- 📽️ SIMULATION -->
+  <!-- 📽️ INTERACTIVE SIMULATION -->
   <div class="sim-overlay hidden" id="simOverlay">
     <div class="sim-content">
       <div class="sim-header">
         <h2 id="simRouteTitle">SIMULATION</h2>
         <button id="closeSim">✕</button>
       </div>
+
+      <!-- Manual Slider Track -->
       <div class="track-area">
-        <div class="track-bar">
-          <div class="track-fill" id="trackFill"></div>
-        </div>
+        <input type="range" id="simSlider" min="0" max="100" value="0" class="sim-slider">
+        <!-- Rider icon moves via JS along value -->
         <div class="track-rider" id="trackRider">🏍️</div>
       </div>
+
+      <!-- Live Stats Grid -->
       <div class="live-telemetry">
-        <span id="simDist">0km</span> • <span id="simTemp">--°</span> • <span id="simWind">--kph</span>
+        <div class="telemetry-grid">
+          <div class="tm-item">
+            <span class="tm-label">CLOCK</span>
+            <span class="tm-val" id="simTime">--:--</span>
+          </div>
+          <div class="tm-item">
+            <span class="tm-label">DIST</span>
+            <span class="tm-val" id="simDist">0km</span>
+          </div>
+          <div class="tm-item">
+            <span class="tm-label">TEMP</span>
+            <span class="tm-val" id="simTemp">--<small>°C</small></span>
+          </div>
+          <div class="tm-item">
+            <span class="tm-label">WIND</span>
+            <span class="tm-val" id="simWind">--<small>kph</small></span>
+          </div>
+        </div>
       </div>
+
+      <p class="sim-hint">Drag slider to scrub route 👆</p>
     </div>
   </div>
 
