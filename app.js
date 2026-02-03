@@ -1,4 +1,4 @@
-// 🚀 Weather Rider: Ultimate Edition (Interactive Charts & Themes)
+// 🚀 Weather Rider: Timeline Edition
 
 const API = {
   GEO: 'https://geocoding-api.open-meteo.com/v1/search',
@@ -9,9 +9,10 @@ const API = {
 const ui = {
   buddy: { wrap: document.getElementById('buddyWrapper'), chat: document.getElementById('buddyChat') },
   tabs: document.querySelectorAll('.tab-btn'),
-  inputs: { start: document.getElementById('startLoc'), end: document.getElementById('endLoc'), go: document.getElementById('goBtn'), locate: document.getElementById('locateBtn') },
+  inputs: { start: document.getElementById('startLoc'), end: document.getElementById('endLoc'), time: document.getElementById('startTime'), go: document.getElementById('goBtn'), locate: document.getElementById('locateBtn') },
   insight: { panel: document.getElementById('insightPanel'), text: document.getElementById('missionText'), temp: document.getElementById('briefTemp'), wind: document.getElementById('briefWind'), rain: document.getElementById('briefRain'), gear: document.getElementById('gearRow') },
   charts: { area: document.getElementById('chartsArea'), rain: document.getElementById('rainChart'), temp: document.getElementById('tempChart'), wind: document.getElementById('windChart') },
+  timeline: document.getElementById('rideTimeline'),
   sim: { overlay: document.getElementById('simOverlay'), close: document.getElementById('closeSim'), fill: document.getElementById('trackFill'), rider: document.getElementById('trackRider'), dist: document.getElementById('simDist'), temp: document.getElementById('simTemp'), wind: document.getElementById('simWind') },
   glance: { city: document.getElementById('lastCity'), temp: document.getElementById('lastTemp'), icon: document.getElementById('lastIcon') }
 };
@@ -23,26 +24,21 @@ const state = {
   simTimer: null
 };
 
-// --- 🎬 INIT ---
 document.addEventListener('DOMContentLoaded', () => {
   const last = localStorage.getItem('wr_last') || 'London';
   ui.inputs.start.value = last;
   refreshGlance(last);
-  buddySay("Systems Online. 👁️");
+  buddySay("Timeline Logic Online. 🕒");
 });
 
-// --- 👁️ INTERACTIONS ---
-// Buddy Click: Toggle Theme
+// --- INTERACTIONS ---
 ui.buddy.wrap.addEventListener('click', () => {
   document.body.classList.toggle('light-mode');
-  const isLight = document.body.classList.contains('light-mode');
-  buddySay(isLight ? "Light Mode Active ☀️" : "Dark Mode Active 🌙");
+  buddySay(document.body.classList.contains('light-mode') ? "Light Mode ☀️" : "Dark Mode 🌙");
 });
 
-// Buddy Eyes (HTML Mouse movement handled in previous steps or CSS, simple JS follower here)
 document.addEventListener('mousemove', (e) => {
-  const eyes = document.querySelectorAll('.eye');
-  eyes.forEach(eye => {
+  document.querySelectorAll('.eye').forEach(eye => {
     const rect = eye.getBoundingClientRect();
     const x = (rect.left) + (rect.width / 2);
     const y = (rect.top) + (rect.height / 2);
@@ -57,17 +53,16 @@ ui.tabs.forEach(btn => {
     ui.tabs.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.mode = btn.dataset.type;
-    const icons = { ride: '🏍️', run: '🏃', cycle: '🚴' };
-    ui.sim.rider.textContent = icons[state.mode];
-    buddySay(`Switching to ${state.mode.toUpperCase()}`);
+    ui.sim.rider.textContent = { ride: '🏍️', run: '🏃', cycle: '🚴' }[state.mode];
+    buddySay(`Mode: ${state.mode.toUpperCase()}`);
   });
 });
 
 ui.inputs.go.addEventListener('click', async () => {
   const dest = ui.inputs.end.value;
-  if (!dest) return buddySay("Destination Required! 🎯");
+  if (!dest) return buddySay("Target Required! 🎯");
 
-  ui.inputs.go.textContent = "🔁 SCANNING...";
+  ui.inputs.go.textContent = "🔁 CALCULATING...";
   ui.inputs.go.style.opacity = "0.7";
 
   try {
@@ -80,7 +75,6 @@ ui.inputs.go.addEventListener('click', async () => {
     state.coords.end = e;
     localStorage.setItem('wr_last', s.name);
 
-    // Route & Weather
     let route;
     try { route = await fetchRoute(s, e); } catch { route = calcFallback(s, e); }
 
@@ -91,14 +85,16 @@ ui.inputs.go.addEventListener('click', async () => {
     generateBriefing(weather, route);
     renderCharts(weather.hourly);
 
-    // Switch to Sim Launch
+    // NEW: Generate Timeline
+    generateRideTimeline(route, weather, s.name, e.name);
+
     ui.inputs.go.textContent = "🚀 LAUNCH SIMULATION";
     ui.inputs.go.style.opacity = "1";
     ui.inputs.go.onclick = () => startSim(route, weather);
 
   } catch (err) {
     console.error(err);
-    buddySay("Nav Failure. Check Names.");
+    buddySay("Sys Failure: Check Data");
     ui.inputs.go.textContent = "ANALYZE CONDITIONS";
     ui.inputs.go.style.opacity = "1";
   }
@@ -114,18 +110,17 @@ function generateBriefing(data, route) {
   ui.insight.wind.textContent = cur.windspeed + 'k';
   ui.insight.rain.textContent = (hr.precipitation_probability[idx] || 0) + '%';
 
-  // Advanced Advice
   let advice = "";
   let gear = [];
 
   if (state.mode === 'run') {
-    advice = cur.temperature > 20 ? "High Heat. Maintain Hydration." : "Conditions Optimal.";
+    advice = cur.temperature > 20 ? "High Heat. Hydrate." : "Conditions Nominal.";
     gear = ["Shoes 👟", "Water 💧"];
   } else if (state.mode === 'cycle') {
-    advice = cur.windspeed > 15 ? "Strong Headwind. Power Up." : "Aero Green.";
+    advice = cur.windspeed > 15 ? "High Drag Detected." : "Aero Green.";
     gear = ["Helmet ⛑️", "Gloves 🧤"];
   } else {
-    advice = (hr.precipitation_probability[idx] > 30) ? "Wet Asphalt. Engagement Caution." : "Tarmac Dry. Send it.";
+    advice = (hr.precipitation_probability[idx] > 30) ? "Wet Surface Warning." : "Tarmac Dry.";
     gear = ["Jacket 🧥", "Visor 🧽"];
   }
 
@@ -133,46 +128,97 @@ function generateBriefing(data, route) {
   ui.insight.gear.innerHTML = gear.map(g => `<span class="gear-tag">${g}</span>`).join('');
 }
 
-// --- 📊 CHART ENGINE V2 ---
+// --- 🕒 TIMELINE ENGINE (NEW) ---
+function generateRideTimeline(route, weather, startName, endName) {
+  const container = ui.timeline;
+  if (!container) return;
+
+  container.innerHTML = '';
+  container.classList.remove('hidden');
+
+  // Parse Start Time
+  const timeInput = ui.inputs.time.value || "10:00"; // Get value from input
+  let [hours, mins] = timeInput.split(':').map(Number);
+
+  // Duration in hours
+  const durHours = route.duration / 3600;
+
+  const nodes = [
+    { label: `Depart ${startName}`, offset: 0 },
+    { label: "Mid-Sector Check", offset: durHours / 2 },
+    { label: `Arrive ${endName}`, offset: durHours }
+  ];
+
+  const w = weather.hourly;
+  // Offset logic: simple relative lookahead from 'now' for demo
+  // In prod, use real timestamps from API
+
+  nodes.forEach((node, i) => {
+    let nodeH = hours + Math.floor(node.offset);
+    let nodeM = mins + Math.floor((node.offset % 1) * 60);
+    if (nodeM >= 60) { nodeH++; nodeM -= 60; }
+    const timeStr = `${nodeH % 24}:${nodeM.toString().padStart(2, '0')}`;
+
+    // Look ahead in API data (approx)
+    const apiIdx = new Date().getHours() + Math.floor(node.offset);
+    const temp = w.temperature_2m[apiIdx] || "--";
+    const code = w.weathercode[apiIdx] || 0;
+    const rain = w.precipitation_probability[apiIdx] || 0;
+    const wind = w.windspeed_10m[apiIdx] || 0;
+
+    // Icon
+    let icon = '☀️';
+    if (code > 3) icon = '☁️';
+    if (code > 50) icon = '🌧️';
+
+    // Danger Check
+    let statusClass = "good";
+    if (rain > 30 || wind > 25) statusClass = "danger";
+
+    const div = document.createElement('div');
+    div.className = `timeline-node ${statusClass}`;
+    div.innerHTML = `
+      <span class="t-time">${timeStr}</span>
+      <div class="t-cond" style="flex:1; margin-left:15px">
+        <span>${node.label}</span>
+      </div>
+      <div class="t-cond">
+        <span class="t-icon">${icon}</span>
+        <span>${Math.round(temp)}°</span>
+        ${rain > 0 ? `<span style="color:#00d2ff; margin-left:5px">💧${rain}%</span>` : ''}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- 📊 CHART ENGINE ---
 function renderCharts(hourly) {
   ui.charts.area.classList.remove('hidden');
   const now = new Date().getHours();
   const range = 6;
 
-  // 1. Rain Bars
   ui.charts.rain.innerHTML = '';
   for (let i = 0; i < range; i++) {
     const val = hourly.precipitation_probability[now + i] || 0;
     const bar = document.createElement('div');
     bar.className = 'c-bar';
     bar.style.height = `${Math.max(val, 5)}%`;
-    bar.title = `+${i}h: ${val}% Rain`; // Tooltip
+    bar.title = `+${i}h: ${val}% Rain`;
     ui.charts.rain.appendChild(bar);
   }
 
-  // 2. Interactive Lines
   drawInteractiveLine(ui.charts.temp, hourly.temperature_2m, now, range, 'temp');
   drawInteractiveLine(ui.charts.wind, hourly.windspeed_10m, now, range, 'wind');
 }
 
 function drawInteractiveLine(container, dataSet, startIdx, range, type) {
-  // Clear container but ensure we keep wrapper structure intact or rebuild it
-  // Simplest: rebuild content inside container (but container is SVG)
-  // Wait, if I replace SVG with DIV wrapper, the reference ui.charts.temp (SVG) gets lost.
-  // Fix: Target the parent div '.chart-box.half' and rebuild inside it. (A bit complex for selectors)
-  // Easier Fix: ui.charts.temp is the SVG. I will clear it, AND append overlay siblings IF they don't exist? 
-  // BETTER: Clear the parentNode's innerHTML and rebuild SVG + Overlay there.
-
-  const parent = container.parentNode;
-
-  // Calc Data
   const slice = dataSet.slice(startIdx, startIdx + range);
   const min = Math.min(...slice);
   const max = Math.max(...slice);
   const diff = (max - min) || 1;
   const avg = slice.reduce((a, b) => a + b, 0) / range;
 
-  // Colors
   let lineClass = 'line-ok';
   let icon = '📊';
   if (type === 'temp') {
@@ -180,20 +226,18 @@ function drawInteractiveLine(container, dataSet, startIdx, range, type) {
     else if (avg < 10) { lineClass = 'line-cold'; icon = '❄️'; }
     else icon = '🌡️';
   } else {
-    if (avg > 25) { lineClass = 'line-cold'; icon = '💨'; } // High wind
+    if (avg > 25) { lineClass = 'line-cold'; icon = '💨'; }
     else icon = '🍃';
   }
 
-  // SVG Points
   const pts = slice.map((v, i) => {
     const x = (i / (range - 1)) * 100;
     const y = 40 - ((v - min) / diff) * 30 - 5;
     return `${x},${y}`;
   }).join(' ');
 
-  // Rebuild DOM structure for Chart Box
-  // We need label + wrapper(SVG + Overlay)
-  const label = type === 'temp' ? 'TEMP TREND' : 'WIND FORCE';
+  const parent = container.parentNode;
+  const label = type === 'temp' ? 'TEMP' : 'WIND';
 
   parent.innerHTML = `
     <label>${label}</label>
@@ -213,7 +257,6 @@ function drawInteractiveLine(container, dataSet, startIdx, range, type) {
   `;
 }
 
-// --- SIMULATION ---
 function startSim(route, weather) {
   ui.sim.overlay.classList.remove('hidden');
   ui.sim.close.onclick = () => location.reload();
@@ -232,7 +275,7 @@ function startSim(route, weather) {
   }, 40);
 }
 
-// --- NETWORK (No Changes) ---
+// --- NETWORK (Safe) ---
 async function resolve(n) {
   if (n === "Current Location") return state.coords.start;
   try {
@@ -253,8 +296,7 @@ async function fetchRoute(s, e) {
 function calcFallback(s, e) { return { distance: 50000, duration: 3600 }; }
 
 async function fetchWeather(c) {
-  const url = `${API.WEATHER}?latitude=${c.latitude}&longitude=${c.longitude}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&windspeed_unit=kmh`;
-  return await (await fetch(url)).json();
+  return await (await fetch(`${API.WEATHER}?latitude=${c.latitude}&longitude=${c.longitude}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&windspeed_unit=kmh`)).json();
 }
 
 async function refreshGlance(c) {
